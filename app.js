@@ -1,7 +1,7 @@
 /**
  * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Light Cozy Edition)
- * Fixed: Completely removed forced sample auto-re-adding logic for tx-10 and tx-11.
- * Deletions now persist permanently across all devices.
+ * Added Dedicated Cash & Red Envelope Account (育兒實體現金 / 手邊紅包).
+ * Real-time Auto-Syncing & Polling Engine across phone & desktop.
  */
 
 const DEFAULT_TRANSACTIONS = [
@@ -12,16 +12,18 @@ const DEFAULT_TRANSACTIONS = [
   { id: 'tx-5', date: '2026-07-10', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '郵局數位帳戶', category: '轉帳', fund: '宣穆基金', amount: 180000, note: '永豐轉入郵局數位帳戶' },
   { id: 'tx-6', date: '2026-07-15', type: '收入', sourceAccount: '郵局 (實體存簿)', targetAccount: '郵局 (實體存簿)', category: '固定收入', fund: '宣穆戶頭', amount: 5000, note: '育兒津貼6月' },
   { id: 'tx-7', date: '2026-07-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: 'LINE 阿萌', category: '每月開銷', fund: '宣穆基金', amount: 10000, note: '7/19 阿萌小雞' },
-  { id: 'tx-8', date: '2026-07-20', type: '收入', sourceAccount: '現金', targetAccount: '現金', category: '萌媽', fund: '其他', amount: 20000, note: '萌媽點外送資助 (現金)' },
+  { id: 'tx-8', date: '2026-07-20', type: '收入', sourceAccount: '現金', targetAccount: '育兒實體現金', category: '萌媽', fund: '其他', amount: 20000, note: '萌媽點外送資助 (現金)' },
   { id: 'tx-9', date: '2026-08-01', type: '支出', sourceAccount: '郵局數位帳戶', targetAccount: 'LINE 阿萌', category: '每月開銷', fund: '宣穆基金', amount: 10000, note: '8/1 阿萌小雞' },
   { id: 'tx-12', date: '2026-08-05', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒大額設備/用品', fund: '宣穆基金', amount: 7539, note: '8/5 購買織物清洗機 (育兒開銷)' },
-  { id: 'tx-13', date: '2026-08-07', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', amount: 10321, note: '阿萌花用：扣款 10321' }
+  { id: 'tx-13', date: '2026-08-07', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', amount: 10321, note: '阿萌花用：扣款 10321' },
+  { id: 'tx-14', date: '2026-08-08', type: '收入', sourceAccount: '現金', targetAccount: '育兒實體現金', category: '其他', fund: '宣穆戶頭', amount: 4800, note: '政詢親戚給的 (阿姨+小舅舅)' }
 ];
 
 const DEFAULT_ACCOUNTS = [
   { id: 'acc-post-phys', name: '郵局 (實體存簿)', group: '存款帳戶', icon: 'fa-envelope-open-text text-emerald-500', badge: '實體存簿', note: '政府補助生育給付/育兒津貼專款' },
   { id: 'acc-post-digi', name: '郵局數位帳戶', group: '存款帳戶', icon: 'fa-mobile-screen-button text-cyan-500', badge: '數位帳戶', note: '存放萌爸 18 萬宣穆基金' },
   { id: 'acc-sinopac', name: '永豐大戶 (DAWHO)', group: '存款帳戶', icon: 'fa-building-columns text-teal-500', badge: '主要轉入帳戶', note: '存放萌爸 18 萬宣穆基金' },
+  { id: 'acc-cash', name: '育兒實體現金', group: '實體現金', icon: 'fa-money-bill-wave text-amber-500', badge: '手邊現金/紅包', note: '收到的親友紅包與現金資助 (尚未存入銀行)' },
   { id: 'acc-joint', name: '共同小雞錢包', group: '開銷錢包', icon: 'fa-heart text-rose-500', badge: '日常開銷錢包', note: '買飯、尿布、育兒用品 (可點按鈕快速輸入金額扣抵)' },
   { id: 'acc-line-among', name: 'LINE 阿萌', group: '開銷錢包', icon: 'fa-comment text-emerald-500', badge: '阿萌開銷錢包', note: '阿萌買兒子花費與共同餐費 (可點按鈕快速輸入金額扣抵)' }
 ];
@@ -43,8 +45,13 @@ class XuanMuFinanceApp {
     this.syncRoomKey = localStorage.getItem('xm_sync_room') || 'hughtong-2026';
     this.lastUpdatedAt = localStorage.getItem('xm_last_updated_at') || '';
     
-    // Explicitly purge deleted sample transactions tx-10 & tx-11 if present in user's localStorage
+    // Purge deleted sample transactions tx-10 & tx-11 if present
     this.transactions = this.transactions.filter(t => t.id !== 'tx-10' && t.id !== 'tx-11');
+
+    // Ensure acc-cash is present in accounts list
+    if (!this.accounts.some(a => a.id === 'acc-cash' || a.name === '育兒實體現金')) {
+      this.accounts.splice(3, 0, { id: 'acc-cash', name: '育兒實體現金', group: '實體現金', icon: 'fa-money-bill-wave text-amber-500', badge: '手邊現金/紅包', note: '收到的親友紅包與現金資助 (尚未存入銀行)' });
+    }
 
     this.quickPresets = DEFAULT_QUICK_PRESETS;
 
@@ -53,27 +60,6 @@ class XuanMuFinanceApp {
       let src = this.normalizeAccountName(tx.sourceAccount);
       let tgt = this.normalizeAccountName(tx.targetAccount);
       
-      if (tx.id === 'tx-8' || (tx.note && tx.note.includes('萌媽'))) {
-        src = '現金';
-        tgt = '現金';
-      }
-
-      if (tx.id === 'tx-4') {
-        src = '永豐大戶 (DAWHO)';
-        tgt = '共同小雞錢包';
-        tx.type = '支出';
-      }
-      if (tx.id === 'tx-7') {
-        src = '永豐大戶 (DAWHO)';
-        tgt = 'LINE 阿萌';
-        tx.type = '支出';
-      }
-      if (tx.id === 'tx-9') {
-        src = '郵局數位帳戶';
-        tgt = 'LINE 阿萌';
-        tx.type = '支出';
-      }
-
       return { ...tx, sourceAccount: src, targetAccount: tgt };
     });
 
@@ -109,6 +95,9 @@ class XuanMuFinanceApp {
     }
     if (s.includes('永豐') || s.includes('DAWHO') || s.includes('大戶')) {
       return '永豐大戶 (DAWHO)';
+    }
+    if (s.includes('實體現金') || s.includes('手邊現金') || s.includes('紅包') || (s === '現金' && !s.includes('付款'))) {
+      return '育兒實體現金';
     }
     if (s.includes('小雞') || s.includes('共同')) {
       return '共同小雞錢包';
@@ -216,10 +205,7 @@ class XuanMuFinanceApp {
 
   async pullFromCloud(isSilent = false) {
     try {
-      // 1. Try pulling from local server endpoint /api/sync first
       let res = await fetch('/api/sync').then(r => r.json()).catch(() => null);
-      
-      // 2. Fallback to npoint cloud storage
       if (!res || !res.transactions) {
         res = await fetch(`https://api.npoint.io/c1e345e5d36e2f4762e8`).then(r => r.json()).catch(() => null);
       }
@@ -231,16 +217,11 @@ class XuanMuFinanceApp {
           
           if (res.appTitle) this.appTitle = res.appTitle;
 
-          // Always filter out tx-10 and tx-11 if remote payload had old cache
           this.transactions = res.transactions
             .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11')
             .map(tx => {
               let src = this.normalizeAccountName(tx.sourceAccount);
               let tgt = this.normalizeAccountName(tx.targetAccount);
-              if (tx.id === 'tx-8' || (tx.note && tx.note.includes('萌媽'))) {
-                src = '現金';
-                tgt = '現金';
-              }
               return { ...tx, sourceAccount: src, targetAccount: tgt };
             });
             
@@ -266,6 +247,7 @@ class XuanMuFinanceApp {
       '郵局 (實體存簿)': 0,
       '郵局數位帳戶': 0,
       '永豐大戶 (DAWHO)': 0,
+      '育兒實體現金': 0,
       '共同小雞錢包': 0,
       'LINE 阿萌': 0
     };
@@ -331,7 +313,8 @@ class XuanMuFinanceApp {
 
     const totalAssets = (accountBalances['郵局 (實體存簿)'] || 0) + 
                         (accountBalances['郵局數位帳戶'] || 0) + 
-                        (accountBalances['永豐大戶 (DAWHO)'] || 0);
+                        (accountBalances['永豐大戶 (DAWHO)'] || 0) +
+                        (accountBalances['育兒實體現金'] || 0);
 
     return {
       totalAssets,
@@ -674,7 +657,7 @@ class XuanMuFinanceApp {
     modal.classList.remove('hidden');
   }
 
-  // Render Outflow Wallets Grid with Real-time Remaining Balances
+  // Render Accounts & Outflow Wallets Grid with Real-time Remaining Balances
   renderAccountsGrid(data) {
     const grid = document.getElementById('accounts-grid');
     grid.innerHTML = '';
@@ -700,6 +683,11 @@ class XuanMuFinanceApp {
         amountStr = `$${remaining.toLocaleString()}`;
         amountLabel = '錢包目前剩餘額度';
         subInfo = `撥入總額 $${stats.topUp.toLocaleString()} ｜ 買用品花用 $${stats.spent.toLocaleString()}`;
+      } else if (normName === '育兒實體現金') {
+        const cashBal = balances['育兒實體現金'] || 24800;
+        amountStr = `$${cashBal.toLocaleString()}`;
+        amountLabel = '手邊實體現金/紅包額度';
+        subInfo = '親友給的紅包與現金資助 (尚未存入銀行卡)';
       } else {
         amountStr = `$${(balances[normName] || 0).toLocaleString()}`;
         amountLabel = '現存存款';
@@ -715,12 +703,12 @@ class XuanMuFinanceApp {
               <i class="fa-solid ${acc.icon} text-base shrink-0"></i> 
               <span class="truncate">${acc.name}</span>
             </span>
-            <span class="text-[10px] px-2.5 py-0.5 rounded-full ${normName.includes('錢包') || normName.includes('阿萌') ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-slate-100 text-slate-700 border-slate-200'} font-bold border shrink-0">
-              ${acc.badge || '開銷錢包'}
+            <span class="text-[10px] px-2.5 py-0.5 rounded-full ${normName.includes('錢包') || normName.includes('阿萌') ? 'bg-rose-100 text-rose-800 border-rose-200' : (normName.includes('現金') ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-slate-100 text-slate-700 border-slate-200')} font-bold border shrink-0">
+              ${acc.badge || '存款帳戶'}
             </span>
           </div>
           <div class="mt-1">
-            <div class="text-2xl font-black ${normName.includes('錢包') || normName.includes('阿萌') ? 'text-rose-600' : 'text-slate-800'}">${amountStr}</div>
+            <div class="text-2xl font-black ${normName.includes('錢包') || normName.includes('阿萌') ? 'text-rose-600' : (normName.includes('現金') ? 'text-amber-600' : 'text-slate-800')}">${amountStr}</div>
             <div class="text-[10px] text-slate-400 font-bold mt-0.5">${amountLabel}</div>
           </div>
         </div>
@@ -763,15 +751,16 @@ class XuanMuFinanceApp {
     const postPhys = data.accountBalances['郵局 (實體存簿)'] || 125000;
     const postDigi = data.accountBalances['郵局數位帳戶'] || 170000;
     const sinoPac = data.accountBalances['永豐大戶 (DAWHO)'] || 155000;
+    const cashBal = data.accountBalances['育兒實體現金'] || 24800;
 
     this.barChart = new Chart(ctxBar, {
       type: 'bar',
       data: {
-        labels: ['郵局實體存簿', '郵局數位帳戶', '永豐大戶 (DAWHO)'],
+        labels: ['郵局實體存簿', '郵局數位帳戶', '永豐大戶 (DAWHO)', '育兒實體現金'],
         datasets: [{
-          label: '現存存款 (NT$)',
-          data: [postPhys, postDigi, sinoPac],
-          backgroundColor: ['#10B981', '#06B6D4', '#14B8A6'],
+          label: '現存資產 (NT$)',
+          data: [postPhys, postDigi, sinoPac, cashBal],
+          backgroundColor: ['#10B981', '#06B6D4', '#14B8A6', '#F59E0B'],
           borderRadius: 10
         }]
       },
@@ -938,13 +927,13 @@ class XuanMuFinanceApp {
     const tgtSelect = this.txTargetAccount;
 
     const opts = `
+      <option value="育兒實體現金">育兒實體現金 (手邊現金/紅包)</option>
       <option value="LINE 阿萌">LINE 阿萌</option>
       <option value="共同小雞錢包">共同小雞錢包</option>
       <option value="永豐大戶 (DAWHO)">永豐大戶 (DAWHO)</option>
       <option value="郵局數位帳戶">郵局數位帳戶</option>
       <option value="郵局 (實體存簿)">郵局 (實體存簿)</option>
       <option value="宣穆投資帳戶">宣穆投資帳戶 (股票/ETF/基金)</option>
-      <option value="現金">現金</option>
       <option value="家電/育兒設備店">家電 / 育兒設備店</option>
       <option value="商家/用品店">商家 / 用品店 / 外送</option>
     `;
@@ -969,8 +958,8 @@ class XuanMuFinanceApp {
     const lblSrc = document.getElementById('lbl-source-account');
     const lblTgt = document.getElementById('lbl-target-account');
     if (type === '收入') {
-      lblSrc.textContent = '來源管道 (例: 現金/政府)';
-      lblTgt.textContent = '存入帳戶 (例: 郵局)';
+      lblSrc.textContent = '來源管道 (例: 親友紅包/政府)';
+      lblTgt.textContent = '存入帳戶 (例: 育兒實體現金/郵局)';
     } else if (type === '支出') {
       lblSrc.textContent = '扣款/撥款帳戶';
       lblTgt.textContent = '受款對象/錢包 (例: 共同小雞/阿萌/商家)';
@@ -978,8 +967,8 @@ class XuanMuFinanceApp {
       lblSrc.textContent = '扣款帳戶';
       lblTgt.textContent = '投資標的 (例: 宣穆投資帳戶)';
     } else {
-      lblSrc.textContent = '轉出帳戶';
-      lblTgt.textContent = '轉入帳戶';
+      lblSrc.textContent = '轉出帳戶 (例: 育兒實體現金)';
+      lblTgt.textContent = '轉入帳戶 (例: 郵局實體存簿)';
     }
   }
 
