@@ -1,0 +1,87 @@
+/* 淺色溫馨親子風主題樣式 (Light & Cozy Family Theme) */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+body {
+  font-family: 'Noto Sans TC', 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #FAF7F2; /* 柔和暖奶油米白底色 */
+  color: #2D3748;            /* 深木炭灰色高對比文字 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 帳戶卡片固定呼吸空間與防溢出 */
+.account-card-box {
+  background: #FFFFFF;
+  border: 1px solid #F1E8DC;
+  box-shadow: 0 4px 18px -2px rgba(217, 196, 172, 0.22);
+  border-radius: 1.5rem;
+  padding: 1.35rem 1.5rem 1.5rem 1.5rem !important; /* 足夠的底部內距 (24px) */
+  min-height: 175px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.account-card-box:hover {
+  box-shadow: 0 8px 25px -4px rgba(200, 170, 140, 0.3);
+  border-color: #E6D7C3;
+}
+
+/* 按鈕與類型選取器 */
+.tx-type-btn.active-income {
+  background: #E6F4F1;
+  border-color: #2A9D8F;
+  color: #1D7065;
+}
+
+.tx-type-btn.active-expense {
+  background: #FDF0ED;
+  border-color: #E07A5F;
+  color: #C04E34;
+}
+
+.tx-type-btn.active-transfer {
+  background: #EBF8FF;
+  border-color: #319795;
+  color: #2C7A7B;
+}
+
+.tx-type-btn.active-invest {
+  background: #FAF5FF;
+  border-color: #805AD5;
+  color: #6B46C1;
+}
+
+/* 點擊圓滑彈窗動畫 */
+.modal-pop-animation {
+  animation: lightPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes lightPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* 自訂滾動條 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF7F2;
+}
+::-webkit-scrollbar-thumb {
+  background: #E2D9CD;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #CBD5E0;
+}
