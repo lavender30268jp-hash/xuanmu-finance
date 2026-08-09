@@ -1,31 +1,31 @@
 /**
  * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Light Cozy Edition)
- * Added Dedicated Cash & Red Envelope Account (育兒實體現金 / 手邊紅包).
+ * Added Interactive Account Breakdown Modal (點擊卡片彈出獨立收支明細與紀錄清單).
  * Real-time Auto-Syncing & Polling Engine across phone & desktop.
  */
 
 const DEFAULT_TRANSACTIONS = [
-  { id: 'tx-1', date: '2026-06-22', type: '收入', sourceAccount: '現金', targetAccount: '郵局 (實體存簿)', category: '單次津貼', fund: '宣穆戶頭', amount: 20000, note: '台中市加碼津貼' },
-  { id: 'tx-2', date: '2026-06-30', type: '收入', sourceAccount: '現金', targetAccount: '郵局 (實體存簿)', category: '單次津貼', fund: '宣穆戶頭', amount: 100000, note: '生育津貼' },
+  { id: 'tx-1', date: '2026-06-22', type: '收入', sourceAccount: '政府補助/現金', targetAccount: '郵局 (實體存簿)', category: '單次津貼', fund: '宣穆戶頭', amount: 20000, note: '台中市加碼津貼' },
+  { id: 'tx-2', date: '2026-06-30', type: '收入', sourceAccount: '政府補助/現金', targetAccount: '郵局 (實體存簿)', category: '單次津貼', fund: '宣穆戶頭', amount: 100000, note: '生育津貼' },
   { id: 'tx-3', date: '2026-07-08', type: '收入', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '永豐大戶 (DAWHO)', category: '萌爸', fund: '宣穆基金', amount: 360000, note: '115/7-116/7宣穆津貼' },
   { id: 'tx-4', date: '2026-07-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', amount: 15000, note: '115/7 共同小雞' },
   { id: 'tx-5', date: '2026-07-10', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '郵局數位帳戶', category: '轉帳', fund: '宣穆基金', amount: 180000, note: '永豐轉入郵局數位帳戶' },
   { id: 'tx-6', date: '2026-07-15', type: '收入', sourceAccount: '郵局 (實體存簿)', targetAccount: '郵局 (實體存簿)', category: '固定收入', fund: '宣穆戶頭', amount: 5000, note: '育兒津貼6月' },
   { id: 'tx-7', date: '2026-07-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: 'LINE 阿萌', category: '每月開銷', fund: '宣穆基金', amount: 10000, note: '7/19 阿萌小雞' },
-  { id: 'tx-8', date: '2026-07-20', type: '收入', sourceAccount: '現金', targetAccount: '育兒實體現金', category: '萌媽', fund: '其他', amount: 20000, note: '萌媽點外送資助 (現金)' },
+  { id: 'tx-8', date: '2026-07-20', type: '收入', sourceAccount: '萌媽資助', targetAccount: '育兒實體現金', category: '萌媽', fund: '其他', amount: 20000, note: '萌媽點外送資助 (現金)' },
   { id: 'tx-9', date: '2026-08-01', type: '支出', sourceAccount: '郵局數位帳戶', targetAccount: 'LINE 阿萌', category: '每月開銷', fund: '宣穆基金', amount: 10000, note: '8/1 阿萌小雞' },
   { id: 'tx-12', date: '2026-08-05', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒大額設備/用品', fund: '宣穆基金', amount: 7539, note: '8/5 購買織物清洗機 (育兒開銷)' },
   { id: 'tx-13', date: '2026-08-07', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', amount: 10321, note: '阿萌花用：扣款 10321' },
-  { id: 'tx-14', date: '2026-08-08', type: '收入', sourceAccount: '現金', targetAccount: '育兒實體現金', category: '其他', fund: '宣穆戶頭', amount: 4800, note: '政詢親戚給的 (阿姨+小舅舅)' }
+  { id: 'tx-14', date: '2026-08-08', type: '收入', sourceAccount: '親戚紅包', targetAccount: '育兒實體現金', category: '其他', fund: '宣穆戶頭', amount: 4800, note: '政詢親戚給的 (阿姨+小舅舅)' }
 ];
 
 const DEFAULT_ACCOUNTS = [
   { id: 'acc-post-phys', name: '郵局 (實體存簿)', group: '存款帳戶', icon: 'fa-envelope-open-text text-emerald-500', badge: '實體存簿', note: '政府補助生育給付/育兒津貼專款' },
   { id: 'acc-post-digi', name: '郵局數位帳戶', group: '存款帳戶', icon: 'fa-mobile-screen-button text-cyan-500', badge: '數位帳戶', note: '存放萌爸 18 萬宣穆基金' },
   { id: 'acc-sinopac', name: '永豐大戶 (DAWHO)', group: '存款帳戶', icon: 'fa-building-columns text-teal-500', badge: '主要轉入帳戶', note: '存放萌爸 18 萬宣穆基金' },
-  { id: 'acc-cash', name: '育兒實體現金', group: '實體現金', icon: 'fa-money-bill-wave text-amber-500', badge: '手邊現金/紅包', note: '收到的親友紅包與現金資助 (尚未存入銀行)' },
-  { id: 'acc-joint', name: '共同小雞錢包', group: '開銷錢包', icon: 'fa-heart text-rose-500', badge: '日常開銷錢包', note: '買飯、尿布、育兒用品 (可點按鈕快速輸入金額扣抵)' },
-  { id: 'acc-line-among', name: 'LINE 阿萌', group: '開銷錢包', icon: 'fa-comment text-emerald-500', badge: '阿萌開銷錢包', note: '阿萌買兒子花費與共同餐費 (可點按鈕快速輸入金額扣抵)' }
+  { id: 'acc-cash', name: '育兒實體現金', group: '實體現金', icon: 'fa-money-bill-wave text-amber-500', badge: '手邊現金/紅包', note: '收到的親友紅包與現金資助 (尚未存入銀行卡)' },
+  { id: 'acc-joint', name: '共同小雞錢包', group: '開銷錢包', icon: 'fa-heart text-rose-500', badge: '日常開銷錢包', note: '買飯、尿布、育兒用品 (點擊看明細/按鈕輸入金額扣抵)' },
+  { id: 'acc-line-among', name: 'LINE 阿萌', group: '開銷錢包', icon: 'fa-comment text-emerald-500', badge: '阿萌開銷錢包', note: '阿萌買兒子花費與共同餐費 (點擊看明細/按鈕輸入金額扣抵)' }
 ];
 
 const DEFAULT_QUICK_PRESETS = [
@@ -50,16 +50,15 @@ class XuanMuFinanceApp {
 
     // Ensure acc-cash is present in accounts list
     if (!this.accounts.some(a => a.id === 'acc-cash' || a.name === '育兒實體現金')) {
-      this.accounts.splice(3, 0, { id: 'acc-cash', name: '育兒實體現金', group: '實體現金', icon: 'fa-money-bill-wave text-amber-500', badge: '手邊現金/紅包', note: '收到的親友紅包與現金資助 (尚未存入銀行)' });
+      this.accounts.splice(3, 0, { id: 'acc-cash', name: '育兒實體現金', group: '實體現金', icon: 'fa-money-bill-wave text-amber-500', badge: '手邊現金/紅包', note: '收到的親友紅包與現金資助 (尚未存入銀行卡)' });
     }
 
     this.quickPresets = DEFAULT_QUICK_PRESETS;
 
     // Normalize account names
     this.transactions = this.transactions.map(tx => {
-      let src = this.normalizeAccountName(tx.sourceAccount);
+      let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
       let tgt = this.normalizeAccountName(tx.targetAccount);
-      
       return { ...tx, sourceAccount: src, targetAccount: tgt };
     });
 
@@ -84,19 +83,19 @@ class XuanMuFinanceApp {
     window.addEventListener('focus', () => this.pullFromCloud());
   }
 
-  normalizeAccountName(rawName) {
+  normalizeAccountName(rawName, isIncomeSource = false) {
     if (!rawName) return '其他';
     const s = rawName.trim();
     if (s.includes('郵局') && (s.includes('數') || s.includes('數位'))) {
       return '郵局數位帳戶';
     }
-    if (s.includes('郵局') || s.includes('存簿') || s.includes('實體')) {
+    if (s.includes('郵局') || s.includes('存簿') || s.includes('實體存簿')) {
       return '郵局 (實體存簿)';
     }
     if (s.includes('永豐') || s.includes('DAWHO') || s.includes('大戶')) {
       return '永豐大戶 (DAWHO)';
     }
-    if (s.includes('實體現金') || s.includes('手邊現金') || s.includes('紅包') || (s === '現金' && !s.includes('付款'))) {
+    if (s.includes('實體現金') || s.includes('手邊現金') || s.includes('紅包') || (s === '現金' && !isIncomeSource)) {
       return '育兒實體現金';
     }
     if (s.includes('小雞') || s.includes('共同')) {
@@ -118,6 +117,7 @@ class XuanMuFinanceApp {
     this.modalRules = document.getElementById('modal-rules');
     this.modalCloudSync = document.getElementById('modal-cloud-sync');
     this.modalQuickPresets = document.getElementById('modal-quick-presets');
+    this.modalAccountDetails = document.getElementById('modal-account-details');
 
     this.formTx = document.getElementById('form-transaction');
     this.txId = document.getElementById('tx-id');
@@ -220,7 +220,7 @@ class XuanMuFinanceApp {
           this.transactions = res.transactions
             .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11')
             .map(tx => {
-              let src = this.normalizeAccountName(tx.sourceAccount);
+              let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
               let tgt = this.normalizeAccountName(tx.targetAccount);
               return { ...tx, sourceAccount: src, targetAccount: tgt };
             });
@@ -266,7 +266,7 @@ class XuanMuFinanceApp {
 
     this.transactions.forEach(tx => {
       const amt = Number(tx.amount) || 0;
-      const src = this.normalizeAccountName(tx.sourceAccount);
+      const src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
       const tgt = this.normalizeAccountName(tx.targetAccount);
 
       // 1. Fund Totals
@@ -657,7 +657,7 @@ class XuanMuFinanceApp {
     modal.classList.remove('hidden');
   }
 
-  // Render Accounts & Outflow Wallets Grid with Real-time Remaining Balances
+  // Render Accounts & Outflow Wallets Grid (Clickable to open transaction breakdown)
   renderAccountsGrid(data) {
     const grid = document.getElementById('accounts-grid');
     grid.innerHTML = '';
@@ -675,31 +675,33 @@ class XuanMuFinanceApp {
         const stats = walletStats['共同小雞錢包'] || { topUp: 15000, spent: 0 };
         const remaining = (stats.topUp - stats.spent);
         amountStr = `$${remaining.toLocaleString()}`;
-        amountLabel = '錢包目前剩餘額度';
+        amountLabel = '錢包目前剩餘額度 (點擊看明細)';
         subInfo = `撥入總額 $${stats.topUp.toLocaleString()} ｜ 買用品花用 $${stats.spent.toLocaleString()}`;
       } else if (normName === 'LINE 阿萌') {
         const stats = walletStats['LINE 阿萌'] || { topUp: 20000, spent: 10321 };
         const remaining = (stats.topUp - stats.spent);
         amountStr = `$${remaining.toLocaleString()}`;
-        amountLabel = '錢包目前剩餘額度';
+        amountLabel = '錢包目前剩餘額度 (點擊看明細)';
         subInfo = `撥入總額 $${stats.topUp.toLocaleString()} ｜ 買用品花用 $${stats.spent.toLocaleString()}`;
       } else if (normName === '育兒實體現金') {
         const cashBal = balances['育兒實體現金'] || 24800;
         amountStr = `$${cashBal.toLocaleString()}`;
-        amountLabel = '手邊實體現金/紅包額度';
+        amountLabel = '手邊實體現金/紅包額度 (點擊看明細)';
         subInfo = '親友給的紅包與現金資助 (尚未存入銀行卡)';
       } else {
         amountStr = `$${(balances[normName] || 0).toLocaleString()}`;
-        amountLabel = '現存存款';
+        amountLabel = '現存存款 (點擊看收支明細)';
         subInfo = acc.note || '';
       }
 
       const cardEl = document.createElement('div');
-      cardEl.className = 'account-card-box';
+      cardEl.className = 'account-card-box cursor-pointer hover:border-amber-400 hover:shadow-lg transition-all transform hover:-translate-y-0.5 group';
+      cardEl.onclick = () => this.openAccountDetailsModal(acc.name);
+      
       cardEl.innerHTML = `
         <div>
           <div class="flex items-center justify-between text-xs mb-2 gap-2">
-            <span class="font-extrabold text-slate-800 flex items-center gap-2 truncate">
+            <span class="font-extrabold text-slate-800 flex items-center gap-2 truncate group-hover:text-amber-700 transition-colors">
               <i class="fa-solid ${acc.icon} text-base shrink-0"></i> 
               <span class="truncate">${acc.name}</span>
             </span>
@@ -709,7 +711,10 @@ class XuanMuFinanceApp {
           </div>
           <div class="mt-1">
             <div class="text-2xl font-black ${normName.includes('錢包') || normName.includes('阿萌') ? 'text-rose-600' : (normName.includes('現金') ? 'text-amber-600' : 'text-slate-800')}">${amountStr}</div>
-            <div class="text-[10px] text-slate-400 font-bold mt-0.5">${amountLabel}</div>
+            <div class="text-[10px] text-amber-700 font-bold mt-0.5 flex items-center justify-between">
+              <span>${amountLabel}</span>
+              <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-bold group-hover:bg-amber-500 group-hover:text-white transition-colors">點擊查看 ➔</span>
+            </div>
           </div>
         </div>
         <div class="text-[11px] text-slate-500 mt-3 font-medium leading-relaxed break-words">
@@ -718,6 +723,100 @@ class XuanMuFinanceApp {
       `;
       grid.appendChild(cardEl);
     });
+  }
+
+  // Open Detailed Transaction Breakdown for Specific Account Card
+  openAccountDetailsModal(rawAccName) {
+    const normName = this.normalizeAccountName(rawAccName);
+    const acc = this.accounts.find(a => this.normalizeAccountName(a.name) === normName) || { name: normName, icon: 'fa-wallet' };
+
+    const modal = document.getElementById('modal-account-details');
+    const title = document.getElementById('account-details-title');
+    const balEl = document.getElementById('account-details-balance');
+    const inEl = document.getElementById('account-details-inflow');
+    const outEl = document.getElementById('account-details-outflow');
+    const countEl = document.getElementById('account-details-count');
+    const list = document.getElementById('account-details-list');
+
+    title.innerHTML = `<i class="fa-solid ${acc.icon || 'fa-wallet'} text-amber-500"></i> ${normName} - 收支與交易明細`;
+
+    const txs = this.transactions.filter(t => {
+      const src = this.normalizeAccountName(t.sourceAccount, t.type === '收入');
+      const tgt = this.normalizeAccountName(t.targetAccount);
+      return src === normName || tgt === normName;
+    });
+
+    let totalIn = 0;
+    let totalOut = 0;
+
+    list.innerHTML = '';
+
+    if (txs.length === 0) {
+      list.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">此帳戶目前尚無相關交易紀錄</div>`;
+    } else {
+      txs.forEach(t => {
+        const src = this.normalizeAccountName(t.sourceAccount, t.type === '收入');
+        const tgt = this.normalizeAccountName(t.targetAccount);
+        const amt = Number(t.amount) || 0;
+
+        let flowDir = '';
+        let colorClass = '';
+        let isPositive = false;
+
+        if (tgt === normName) {
+          isPositive = true;
+          totalIn += amt;
+          flowDir = `存入 / 轉入 (來源: ${src})`;
+          colorClass = 'text-emerald-600';
+        } else {
+          totalOut += amt;
+          flowDir = `支出 / 轉出 (去向: ${tgt})`;
+          colorClass = 'text-rose-600';
+        }
+
+        const item = document.createElement('div');
+        item.className = 'p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between hover:bg-amber-50/60 transition-colors';
+        item.innerHTML = `
+          <div class="space-y-0.5">
+            <div class="font-extrabold text-slate-800 text-xs flex items-center gap-2">
+              <span>${t.note || t.category}</span>
+              <span class="text-[10px] px-2 py-0.2 rounded-full ${isPositive ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'} font-bold">${t.type}</span>
+            </div>
+            <div class="text-[11px] text-slate-500">${t.date} ｜ ${flowDir}</div>
+          </div>
+          <div class="text-right">
+            <div class="font-black text-sm ${colorClass}">
+              ${isPositive ? '+' : '-'}$${amt.toLocaleString()}
+            </div>
+            <button onclick="app.editTransaction('${t.id}'); app.closeModal(document.getElementById('modal-account-details'))" class="text-[10px] text-amber-600 font-bold hover:underline">
+              <i class="fa-solid fa-pen"></i> 編輯
+            </button>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    let netBal = totalIn - totalOut;
+    if (normName === '共同小雞錢包' || normName === 'LINE 阿萌') {
+      balEl.textContent = `$${Math.max(0, netBal).toLocaleString()}`;
+    } else {
+      const data = this.calculateBalances();
+      balEl.textContent = `$${(data.accountBalances[normName] || netBal).toLocaleString()}`;
+    }
+
+    inEl.textContent = `+$${totalIn.toLocaleString()}`;
+    outEl.textContent = `-$${totalOut.toLocaleString()}`;
+    countEl.textContent = txs.length;
+
+    document.getElementById('btn-filter-main-table').onclick = () => {
+      this.searchKeyword.value = normName;
+      this.renderTransactionsTable();
+      this.closeModal(modal);
+      document.getElementById('transactions-section').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    modal.classList.remove('hidden');
   }
 
   renderCharts(data) {
@@ -840,7 +939,7 @@ class XuanMuFinanceApp {
         fundTag = '<span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold">其他</span>';
       }
 
-      const srcName = this.normalizeAccountName(tx.sourceAccount);
+      const srcName = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
       const tgtName = this.normalizeAccountName(tx.targetAccount);
       const flowText = `${srcName} ➔ ${tgtName}`;
 
@@ -989,7 +1088,7 @@ class XuanMuFinanceApp {
     this.txId.value = tx.id;
     this.txDate.value = tx.date;
     this.txAmount.value = tx.amount;
-    this.txSourceAccount.value = this.normalizeAccountName(tx.sourceAccount);
+    this.txSourceAccount.value = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
     this.txTargetAccount.value = this.normalizeAccountName(tx.targetAccount);
     this.txCategory.value = tx.category;
     this.txFund.value = tx.fund;
@@ -1016,7 +1115,7 @@ class XuanMuFinanceApp {
       id,
       date: this.txDate.value,
       type: this.currentTxType,
-      sourceAccount: this.normalizeAccountName(this.txSourceAccount.value),
+      sourceAccount: this.normalizeAccountName(this.txSourceAccount.value, this.currentTxType === '收入'),
       targetAccount: this.normalizeAccountName(this.txTargetAccount.value),
       category: this.txCategory.value,
       fund: this.txFund.value,
