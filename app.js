@@ -38,15 +38,8 @@ const DEFAULT_QUICK_PRESETS = [
 class XuanMuFinanceApp {
   constructor() {
     this.appTitle = localStorage.getItem('xm_app_title') || '小萌馬金庫';
-    this.transactions = JSON.parse(localStorage.getItem('xm_transactions')) || DEFAULT_TRANSACTIONS;
-    this.accounts = JSON.parse(localStorage.getItem('xm_accounts')) || DEFAULT_ACCOUNTS;
-    this.quickPresets = JSON.parse(localStorage.getItem('xm_quick_presets')) || DEFAULT_QUICK_PRESETS;
-    this.subsidyRule = localStorage.getItem('xm_subsidy_rule') || 'child';
-    this.syncRoomKey = localStorage.getItem('xm_sync_room') || 'hughtong-2026';
-    this.lastUpdatedAt = localStorage.getItem('xm_last_updated_at') || '';
-    
-    // Purge deleted sample transactions tx-10 & tx-11 if present and sort date descending
-    this.transactions = this.transactions
+    // Always force sort transactions date descending upon loading from localStorage/DEFAULT
+    this.transactions = (JSON.parse(localStorage.getItem('xm_transactions')) || DEFAULT_TRANSACTIONS)
       .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11')
       .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
 
@@ -219,13 +212,15 @@ class XuanMuFinanceApp {
           
           if (res.appTitle) this.appTitle = res.appTitle;
 
+          // Always filter out tx-10 & tx-11 and sort date descending
           this.transactions = res.transactions
             .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11')
             .map(tx => {
               let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
               let tgt = this.normalizeAccountName(tx.targetAccount);
               return { ...tx, sourceAccount: src, targetAccount: tgt };
-            });
+            })
+            .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
             
           if (res.accounts) this.accounts = res.accounts;
           if (res.quickPresets) this.quickPresets = res.quickPresets;
