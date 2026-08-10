@@ -1,9 +1,7 @@
 /**
  * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Light Cozy Edition)
- * Fixed:
- * 1. Corrected wallet topUp vs spent math so self-transfers (共同小雞 ➔ 共同小雞) properly reduce remaining balance.
- * 2. Added Date prompt to Quick Presets (小雞花用 & 萌 LINE 花用可自由選擇補登過去日期).
- * 3. 共同小雞錢包 remaining balance correctly displays $23,075 ($30,000 topup - $6,925 spent).
+ * Enhanced: Full Quick Presets Customization (完整可自訂快捷按鈕：收支類型、資金歸屬、來源去向帳戶、金額、備註、彈窗模式).
+ * Real-time Auto-Syncing & Polling Engine across phone & desktop.
  */
 
 const DEFAULT_TRANSACTIONS = [
@@ -32,21 +30,19 @@ const DEFAULT_ACCOUNTS = [
 ];
 
 const DEFAULT_QUICK_PRESETS = [
-  { id: 'qp-chick', name: '🐥 小雞花用 (扣小雞錢包)', mode: 'prompt-chick', icon: 'fa-cart-shopping text-rose-500', border: 'border-rose-200 hover:border-rose-400 bg-rose-50/30', desc: '按下去輸入金額與日期，扣小雞錢包' },
-  { id: 'qp-among', name: '💬 萌 LINE 花用 (扣阿萌錢包)', mode: 'prompt-among', icon: 'fa-comment text-emerald-500', border: 'border-emerald-200 hover:border-emerald-400 bg-emerald-50/30', desc: '按下去輸入金額與日期，扣 LINE 阿萌' },
-  { id: 'qp-single', name: '🛍️ 宣穆基金單筆育兒支出', mode: 'prompt-single', icon: 'fa-bag-shopping text-purple-500', border: 'border-purple-200 hover:border-purple-400 bg-purple-50/30', desc: '例：買織物清洗機/大額用品' },
-  { id: 'qp-topup-chick', name: '➕ 共同小雞 (撥款 1.5萬)', amount: 15000, type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', note: '115/8 共同小雞', icon: 'fa-heart text-rose-500', border: 'border-teal-200 hover:border-teal-400' }
+  { id: 'qp-chick', name: '🐥 小雞花用 (扣小雞錢包)', mode: 'prompt', type: '支出', sourceAccount: '共同小雞錢包', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', note: '買飯/尿布', icon: 'fa-cart-shopping text-rose-500', border: 'border-rose-200 hover:border-rose-400 bg-rose-50/30', desc: '按下去輸入金額與日期，扣小雞錢包' },
+  { id: 'qp-among', name: '💬 萌 LINE 花用 (扣阿萌錢包)', mode: 'prompt', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', note: '扣款', icon: 'fa-comment text-emerald-500', border: 'border-emerald-200 hover:border-emerald-400 bg-emerald-50/30', desc: '按下去輸入金額與日期，扣 LINE 阿萌' },
+  { id: 'qp-single', name: '🛍️ 宣穆基金單筆育兒支出', mode: 'prompt', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒大額設備/用品', fund: '宣穆基金', note: '購買織物清洗機 (育兒開銷)', icon: 'fa-bag-shopping text-purple-500', border: 'border-purple-200 hover:border-purple-400 bg-purple-50/30', desc: '例：買織物清洗機/大額用品' },
+  { id: 'qp-topup-chick', name: '➕ 共同小雞 (撥款 1.5萬)', mode: 'direct', amount: 15000, type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', note: '115/8 共同小雞', icon: 'fa-heart text-rose-500', border: 'border-teal-200 hover:border-teal-400', desc: '撥款 1.5 萬入共同小雞' }
 ];
 
 class XuanMuFinanceApp {
   constructor() {
     this.appTitle = localStorage.getItem('xm_app_title') || '小萌馬金庫';
     
-    // Load and clean transactions
     this.transactions = (JSON.parse(localStorage.getItem('xm_transactions')) || DEFAULT_TRANSACTIONS)
       .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11');
 
-    // Auto-migrate tx-15 (8/10 共同小雞 $15,000) and tx-12 if missing
     if (!this.transactions.some(t => t.id === 'tx-15' || (t.note && t.note.includes('115/8 共同小雞')))) {
       this.transactions.push({ id: 'tx-15', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', amount: 15000, note: '115/8 共同小雞' });
     }
@@ -64,14 +60,10 @@ class XuanMuFinanceApp {
       this.accounts.splice(3, 0, { id: 'acc-cash', name: '育兒實體現金', group: '實體現金', icon: 'fa-money-bill-wave text-amber-500', badge: '手邊現金/紅包', note: '收到的親友紅包與現金資助 (尚未存入銀行卡)' });
     }
 
-    this.quickPresets = DEFAULT_QUICK_PRESETS;
-
-    // Normalize accounts and fix self-target wallet transfers
     this.transactions = this.transactions.map(tx => {
       let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
       let tgt = this.normalizeAccountName(tx.targetAccount);
       
-      // Fix bug: if wallet expense set targetAccount to itself, change targetAccount to merchant
       if (tx.type === '支出' && (src === '共同小雞錢包' || src === 'LINE 阿萌') && (tgt === src || tgt === '共同小雞錢包' || tgt === 'LINE 阿萌')) {
         tgt = '商家/用品店';
       }
@@ -312,7 +304,6 @@ class XuanMuFinanceApp {
       } else if (tx.type === '支出') {
         accountBalances[src] = (accountBalances[src] || 0) - amt;
 
-        // ONLY count topUp if money comes from OUTSIDE the wallet (e.g. from bank accounts)!
         if (tgt === '共同小雞錢包' && src !== '共同小雞錢包') {
           walletStats['共同小雞錢包'].topUp += amt;
         } else if (tgt === 'LINE 阿萌' && src !== 'LINE 阿萌') {
@@ -418,84 +409,27 @@ class XuanMuFinanceApp {
 
     const today = new Date().toISOString().split('T')[0];
 
-    // Mode 1: Chick Wallet Prompt with Date & Note Prompts
-    if (qp.mode === 'prompt-chick') {
+    // Interactive Prompt Mode (Asking Date, Amount, Note)
+    if (qp.mode === 'prompt' || (qp.mode && qp.mode.startsWith('prompt'))) {
       const dateInput = prompt('請輸入/確認扣款日期 (格式：YYYY-MM-DD)：', today) || today;
-      const inputAmtStr = prompt('🐥 請輸入【小雞錢包】要扣抵的花用金額 (元)：', '500');
+      
+      let defaultAmt = qp.amount || '';
+      const inputAmtStr = prompt(`請輸入【${qp.name}】金額 (元)：`, defaultAmt ? String(defaultAmt) : '');
       if (!inputAmtStr) return;
       const amt = Number(inputAmtStr.trim());
       if (isNaN(amt) || amt <= 0) return alert('請輸入有效的金額！');
 
-      const note = prompt('請輸入花用備註 (例：買便當/買尿布)：', '買飯/尿布') || '買飯/尿布';
+      const defaultNote = qp.note || qp.name || '明細紀錄';
+      const note = prompt('請輸入說明備註：', defaultNote) || defaultNote;
 
       const newTx = {
         id: 'tx-' + Date.now(),
         date: dateInput,
-        type: '支出',
-        sourceAccount: '共同小雞錢包',
-        targetAccount: '商家/用品店',
-        category: '每月開銷',
-        fund: '宣穆基金',
-        amount: amt,
-        note: `小雞花用：${note}`
-      };
-
-      this.transactions.unshift(newTx);
-      this.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
-      this.render();
-      this.saveState();
-      alert(`已成功記錄 ${dateInput} 小雞花用 $${amt.toLocaleString()} 元！共同小雞錢包剩餘額度已自動扣減。`);
-      return;
-    }
-
-    // Mode 2: AMeng Wallet Prompt with Date & Note Prompts
-    if (qp.mode === 'prompt-among') {
-      const dateInput = prompt('請輸入/確認扣款日期 (格式：YYYY-MM-DD)：', today) || today;
-      const inputAmtStr = prompt('💬 請輸入【LINE 阿萌錢包】要扣抵的花用金額 (元)：', '10321');
-      if (!inputAmtStr) return;
-      const amt = Number(inputAmtStr.trim());
-      if (isNaN(amt) || amt <= 0) return alert('請輸入有效的金額！');
-
-      const note = prompt('請輸入花用備註 (例：買奶粉/玩具)：', '扣款') || '扣款';
-
-      const newTx = {
-        id: 'tx-' + Date.now(),
-        date: dateInput,
-        type: '支出',
-        sourceAccount: 'LINE 阿萌',
-        targetAccount: '商家/用品店',
-        category: '每月開銷',
-        fund: '宣穆基金',
-        amount: amt,
-        note: `阿萌花用：${note}`
-      };
-
-      this.transactions.unshift(newTx);
-      this.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
-      this.render();
-      this.saveState();
-      alert(`已成功記錄 ${dateInput} 阿萌花用 $${amt.toLocaleString()} 元！LINE 阿萌錢包剩餘額度已自動扣減。`);
-      return;
-    }
-
-    // Mode 3: Single Direct Expense from XuanMu Fund
-    if (qp.mode === 'prompt-single') {
-      const dateInput = prompt('請輸入/確認扣款日期 (格式：YYYY-MM-DD)：', today) || today;
-      const inputAmtStr = prompt('🛍️ 請輸入【宣穆基金單筆育兒支出】金額 (元)：', '7539');
-      if (!inputAmtStr) return;
-      const amt = Number(inputAmtStr.trim());
-      if (isNaN(amt) || amt <= 0) return alert('請輸入有效的金額！');
-
-      const note = prompt('請輸入購買物品說明備註 (例：8/5 購買織物清洗機)：', '購買織物清洗機 (育兒開銷)') || '育兒單筆開銷';
-
-      const newTx = {
-        id: 'tx-' + Date.now(),
-        date: dateInput,
-        type: '支出',
-        sourceAccount: '永豐大戶 (DAWHO)',
-        targetAccount: '家電/育兒設備店',
-        category: '育兒大額設備/用品',
-        fund: '宣穆基金',
+        type: qp.type || '支出',
+        sourceAccount: this.normalizeAccountName(qp.sourceAccount, qp.type === '收入'),
+        targetAccount: this.normalizeAccountName(qp.targetAccount),
+        category: qp.category || (qp.type === '收入' ? '單次津貼' : '每月開銷'),
+        fund: qp.fund || '宣穆基金',
         amount: amt,
         note: note
       };
@@ -504,17 +438,16 @@ class XuanMuFinanceApp {
       this.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
       this.render();
       this.saveState();
-      alert(`已成功記錄 ${dateInput} 宣穆基金單筆支出 $${amt.toLocaleString()} 元 (${note})！宣穆基金與 8 月預算已同步扣減。`);
+      alert(`已成功記錄 ${dateInput} 【${qp.name}】 $${amt.toLocaleString()} 元 (${note})！`);
       return;
     }
 
-    // Default Modal 1 flow
+    // Direct Mode (Opening Modal 1 or Direct Fill)
     this.openAddModal();
     this.txDate.value = today;
-
     this.setModalTxType(qp.type || '支出');
-    this.txAmount.value = qp.amount;
-    this.txSourceAccount.value = this.normalizeAccountName(qp.sourceAccount);
+    if (qp.amount) this.txAmount.value = qp.amount;
+    this.txSourceAccount.value = this.normalizeAccountName(qp.sourceAccount, qp.type === '收入');
     this.txTargetAccount.value = this.normalizeAccountName(qp.targetAccount);
     this.txCategory.value = qp.category || '每月開銷';
     this.txFund.value = qp.fund || '宣穆基金';
@@ -526,27 +459,93 @@ class XuanMuFinanceApp {
     this.modalQuickPresets.classList.remove('hidden');
   }
 
+  buildAccountOptionsHTML(selectedVal) {
+    const normSel = this.normalizeAccountName(selectedVal);
+    const opts = [
+      { name: '共同小雞錢包', val: '共同小雞錢包' },
+      { name: 'LINE 阿萌', val: 'LINE 阿萌' },
+      { name: '永豐大戶 (DAWHO)', val: '永豐大戶 (DAWHO)' },
+      { name: '郵局數位帳戶', val: '郵局數位帳戶' },
+      { name: '郵局 (實體存簿)', val: '郵局 (實體存簿)' },
+      { name: '育兒實體現金', val: '育兒實體現金' },
+      { name: '商家/用品店', val: '商家/用品店' },
+      { name: '家電/育兒設備店', val: '家電/育兒設備店' },
+      { name: '政府補助/親友', val: '政府補助/親友' }
+    ];
+
+    return opts.map(o => `<option value="${o.val}" ${normSel === o.val ? 'selected' : ''}>${o.name}</option>`).join('');
+  }
+
   renderQuickPresetsManageList() {
     const list = document.getElementById('quick-presets-manage-list');
     list.innerHTML = '';
 
     this.quickPresets.forEach((qp, idx) => {
       const itemEl = document.createElement('div');
-      itemEl.className = 'p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2';
+      itemEl.className = 'p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3';
       itemEl.innerHTML = `
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-[10px] font-bold text-slate-400">快捷名稱</label>
-            <input type="text" data-qp-idx="${idx}" class="qp-input-name font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:border-amber-400 w-full" value="${qp.name}">
+            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">快捷按鈕名稱</label>
+            <input type="text" data-qp-idx="${idx}" class="qp-input-name font-bold text-slate-800 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:border-amber-400 w-full" value="${qp.name}">
           </div>
           <div>
-            <label class="block text-[10px] font-bold text-slate-400">預設金額 (空白代表彈窗輸入)</label>
-            <input type="number" data-qp-idx="${idx}" class="qp-input-amount font-black text-slate-900 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:border-amber-400 w-full" value="${qp.amount || ''}">
+            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">預設金額 (空白代表彈窗輸入)</label>
+            <input type="number" data-qp-idx="${idx}" class="qp-input-amount font-black text-slate-900 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:border-amber-400 w-full" value="${qp.amount || ''}" placeholder="例: 15000 或留空">
           </div>
         </div>
+
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">收支類型</label>
+            <select data-qp-idx="${idx}" class="qp-input-type font-bold text-slate-800 bg-white border border-slate-200 rounded-xl px-2 py-1.5 text-xs w-full">
+              <option value="支出" ${qp.type === '支出' ? 'selected' : ''}>支出</option>
+              <option value="收入" ${qp.type === '收入' ? 'selected' : ''}>收入</option>
+              <option value="轉帳" ${qp.type === '轉帳' ? 'selected' : ''}>轉帳</option>
+              <option value="投資" ${qp.type === '投資' ? 'selected' : ''}>投資</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">資金歸屬</label>
+            <select data-qp-idx="${idx}" class="qp-input-fund font-bold text-slate-800 bg-white border border-slate-200 rounded-xl px-2 py-1.5 text-xs w-full">
+              <option value="宣穆基金" ${qp.fund === '宣穆基金' ? 'selected' : ''}>宣穆基金 (營運)</option>
+              <option value="宣穆戶頭" ${qp.fund === '宣穆戶頭' ? 'selected' : ''}>宣穆戶頭 (積蓄)</option>
+              <option value="宣穆投資" ${qp.fund === '宣穆投資' ? 'selected' : ''}>宣穆投資</option>
+              <option value="其他" ${qp.fund === '其他' ? 'selected' : ''}>其他</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">按鈕觸發模式</label>
+            <select data-qp-idx="${idx}" class="qp-input-mode font-bold text-slate-800 bg-white border border-slate-200 rounded-xl px-2 py-1.5 text-xs w-full">
+              <option value="prompt" ${qp.mode && qp.mode.startsWith('prompt') ? 'selected' : ''}>💬 彈窗問金額與日期</option>
+              <option value="direct" ${!qp.mode || !qp.mode.startsWith('prompt') ? 'selected' : ''}>🎯 一鍵帶入表單</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">來源 / 扣款帳戶</label>
+            <select data-qp-idx="${idx}" class="qp-input-src font-bold text-slate-800 bg-white border border-slate-200 rounded-xl px-2 py-1.5 text-xs w-full">
+              ${this.buildAccountOptionsHTML(qp.sourceAccount)}
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">去向 / 存入帳戶</label>
+            <select data-qp-idx="${idx}" class="qp-input-tgt font-bold text-slate-800 bg-white border border-slate-200 rounded-xl px-2 py-1.5 text-xs w-full">
+              ${this.buildAccountOptionsHTML(qp.targetAccount)}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 mb-0.5">預設說明備註</label>
+          <input type="text" data-qp-idx="${idx}" class="qp-input-note text-slate-600 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:border-amber-400 w-full" value="${qp.note || qp.name || ''}">
+        </div>
+
         <div class="flex justify-end pt-1">
-          <button onclick="app.deleteQuickPreset('${qp.id}')" class="text-rose-600 font-bold hover:underline text-[11px]">
-            <i class="fa-solid fa-trash-can"></i> 刪除此快捷
+          <button onclick="app.deleteQuickPreset('${qp.id}')" class="text-rose-600 font-bold hover:underline text-[11px] flex items-center gap-1">
+            <i class="fa-solid fa-trash-can"></i> 刪除此快捷按鈕
           </button>
         </div>
       `;
@@ -555,22 +554,22 @@ class XuanMuFinanceApp {
   }
 
   addNewQuickPresetPrompt() {
-    const name = prompt('請輸入新快捷按鈕名稱（例：小雞買飯 $300、買尿布 $1200）：');
+    const name = prompt('請輸入新快捷按鈕名稱（例：育兒津貼 $5000、買奶粉 $1200）：');
     if (!name) return;
-    const amount = Number(prompt('請輸入預設金額：', '500')) || 500;
 
     const newQP = {
       id: 'qp-' + Date.now(),
       name,
-      amount,
+      amount: undefined,
       type: '支出',
       sourceAccount: '共同小雞錢包',
-      targetAccount: '商家/外送',
+      targetAccount: '商家/用品店',
       category: '每月開銷',
       fund: '宣穆基金',
+      mode: 'prompt',
       note: name,
-      icon: 'fa-cart-shopping text-rose-500',
-      border: 'border-rose-200 hover:border-rose-400'
+      icon: 'fa-bolt text-amber-500',
+      border: 'border-amber-200 hover:border-amber-400'
     };
 
     this.quickPresets.push(newQP);
@@ -585,26 +584,38 @@ class XuanMuFinanceApp {
   }
 
   saveQuickPresetsFromModal() {
-    document.querySelectorAll('.qp-input-name').forEach(input => {
-      const idx = input.getAttribute('data-qp-idx');
-      if (this.quickPresets[idx]) this.quickPresets[idx].name = input.value;
-    });
+    const names = document.querySelectorAll('.qp-input-name');
+    const amounts = document.querySelectorAll('.qp-input-amount');
+    const types = document.querySelectorAll('.qp-input-type');
+    const funds = document.querySelectorAll('.qp-input-fund');
+    const modes = document.querySelectorAll('.qp-input-mode');
+    const srcs = document.querySelectorAll('.qp-input-src');
+    const tgts = document.querySelectorAll('.qp-input-tgt');
+    const notes = document.querySelectorAll('.qp-input-note');
 
-    document.querySelectorAll('.qp-input-amount').forEach(input => {
+    names.forEach((input, i) => {
       const idx = input.getAttribute('data-qp-idx');
-      if (this.quickPresets[idx]) this.quickPresets[idx].amount = input.value ? Number(input.value) : undefined;
+      if (this.quickPresets[idx]) {
+        this.quickPresets[idx].name = input.value.trim() || '快捷按鈕';
+        this.quickPresets[idx].amount = amounts[i]?.value ? Number(amounts[i].value) : undefined;
+        this.quickPresets[idx].type = types[i]?.value || '支出';
+        this.quickPresets[idx].fund = funds[i]?.value || '宣穆基金';
+        this.quickPresets[idx].mode = modes[i]?.value || 'prompt';
+        this.quickPresets[idx].sourceAccount = srcs[i]?.value || '共同小雞錢包';
+        this.quickPresets[idx].targetAccount = tgts[i]?.value || '商家/用品店';
+        this.quickPresets[idx].note = notes[i]?.value || input.value;
+      }
     });
 
     this.render();
     this.saveState();
-    alert('快捷按鈕已成功修改並儲存！');
+    alert('所有快捷按鈕設定（收支類型、來源去向帳戶、資金歸屬與彈窗模式）已成功儲存！');
     this.closeModal(this.modalQuickPresets);
   }
 
   renderBudgetTrackers(data) {
     const annualTotal = 360000;
     
-    // EXCLUDE micro-expenses FROM outflow wallets (LINE 阿萌 / 共同小雞) to avoid double counting!
     const spentFromFund = this.transactions
       .filter(tx => tx.fund === '宣穆基金' && tx.type === '支出' && !tx.sourceAccount.includes('錢包') && !tx.sourceAccount.includes('阿萌'))
       .reduce((sum, tx) => sum + Number(tx.amount), 0);
@@ -628,7 +639,6 @@ class XuanMuFinanceApp {
 
     const currentMonthPrefix = '2026-08';
     
-    // August Fund Spending: ONLY count transfers to wallets or direct fund purchases!
     const augustSpent = this.transactions
       .filter(tx => tx.fund === '宣穆基金' && tx.type === '支出' && tx.date.startsWith(currentMonthPrefix) && !tx.sourceAccount.includes('錢包') && !tx.sourceAccount.includes('阿萌'))
       .reduce((sum, tx) => sum + Number(tx.amount), 0);
@@ -1102,6 +1112,7 @@ class XuanMuFinanceApp {
       <option value="宣穆投資帳戶">宣穆投資帳戶 (股票/ETF/基金)</option>
       <option value="家電/育兒設備店">家電 / 育兒設備店</option>
       <option value="商家/用品店">商家 / 用品店 / 外送</option>
+      <option value="政府補助/親友">政府補助 / 親友紅包</option>
     `;
 
     srcSelect.innerHTML = opts;
