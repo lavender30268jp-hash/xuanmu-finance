@@ -45,8 +45,10 @@ class XuanMuFinanceApp {
     this.syncRoomKey = localStorage.getItem('xm_sync_room') || 'hughtong-2026';
     this.lastUpdatedAt = localStorage.getItem('xm_last_updated_at') || '';
     
-    // Purge deleted sample transactions tx-10 & tx-11 if present
-    this.transactions = this.transactions.filter(t => t.id !== 'tx-10' && t.id !== 'tx-11');
+    // Purge deleted sample transactions tx-10 & tx-11 if present and sort date descending
+    this.transactions = this.transactions
+      .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11')
+      .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
 
     // Ensure acc-cash is present in accounts list
     if (!this.accounts.some(a => a.id === 'acc-cash' || a.name === '育兒實體現金')) {
