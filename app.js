@@ -1,7 +1,8 @@
 /**
  * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Light Cozy Edition)
- * Enhanced: Full Quick Presets Customization (完整可自訂快捷按鈕：收支類型、資金歸屬、來源去向帳戶、金額、備註、彈窗模式).
- * Real-time Auto-Syncing & Polling Engine across phone & desktop.
+ * Fixed:
+ * 1. Correct Income color formatting (Type = '收入' always green +$amt, never red -$amt).
+ * 2. Top 4 summary dashboard cards are clickable to open detailed transaction breakdown modals.
  */
 
 const DEFAULT_TRANSACTIONS = [
@@ -12,7 +13,7 @@ const DEFAULT_TRANSACTIONS = [
   { id: 'tx-9', date: '2026-08-01', type: '支出', sourceAccount: '郵局數位帳戶', targetAccount: 'LINE 阿萌', category: '每月開銷', fund: '宣穆基金', amount: 10000, note: '8/1 阿萌小雞' },
   { id: 'tx-8', date: '2026-07-20', type: '收入', sourceAccount: '萌媽資助', targetAccount: '育兒實體現金', category: '萌媽', fund: '其他', amount: 20000, note: '萌媽點外送資助 (現金)' },
   { id: 'tx-7', date: '2026-07-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: 'LINE 阿萌', category: '每月開銷', fund: '宣穆基金', amount: 10000, note: '7/19 阿萌小雞' },
-  { id: 'tx-6', date: '2026-07-15', type: '收入', sourceAccount: '郵局 (實體存簿)', targetAccount: '郵局 (實體存簿)', category: '固定收入', fund: '宣穆戶頭', amount: 5000, note: '育兒津貼6月' },
+  { id: 'tx-6', date: '2026-07-15', type: '收入', sourceAccount: '政府補助/親友', targetAccount: '郵局 (實體存簿)', category: '固定收入', fund: '宣穆戶頭', amount: 5000, note: '育兒津貼6月' },
   { id: 'tx-5', date: '2026-07-10', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '郵局數位帳戶', category: '轉帳', fund: '宣穆基金', amount: 180000, note: '永豐轉入郵局數位帳戶' },
   { id: 'tx-4', date: '2026-07-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', amount: 15000, note: '115/7 共同小雞' },
   { id: 'tx-3', date: '2026-07-08', type: '收入', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '永豐大戶 (DAWHO)', category: '萌爸', fund: '宣穆基金', amount: 360000, note: '115/7-116/7宣穆津貼' },
@@ -354,7 +355,7 @@ class XuanMuFinanceApp {
     document.getElementById('card-xuanmu-account').textContent = `$${data.xuanmuAccount.toLocaleString()}`;
     document.getElementById('card-xuanmu-fund').textContent = `$${data.xuanmuFund.toLocaleString()}`;
     document.getElementById('card-xuanmu-invest').textContent = `$${(data.xuanmuInvest + data.otherFund).toLocaleString()}`;
-    document.getElementById('badge-total-transactions').textContent = `${this.transactions.length} 筆交易紀錄`;
+    document.getElementById('badge-total-transactions').textContent = `${this.transactions.length} 筆紀錄 ➔`;
 
     this.renderQuickPresets();
     this.renderBudgetTrackers(data);
@@ -409,7 +410,6 @@ class XuanMuFinanceApp {
 
     const today = new Date().toISOString().split('T')[0];
 
-    // Interactive Prompt Mode (Asking Date, Amount, Note)
     if (qp.mode === 'prompt' || (qp.mode && qp.mode.startsWith('prompt'))) {
       const dateInput = prompt('請輸入/確認扣款日期 (格式：YYYY-MM-DD)：', today) || today;
       
@@ -442,7 +442,6 @@ class XuanMuFinanceApp {
       return;
     }
 
-    // Direct Mode (Opening Modal 1 or Direct Fill)
     this.openAddModal();
     this.txDate.value = today;
     this.setModalTxType(qp.type || '支出');
@@ -824,7 +823,12 @@ class XuanMuFinanceApp {
         let colorClass = '';
         let isPositive = false;
 
-        if (tgt === normName && src !== normName) {
+        if (t.type === '收入') {
+          isPositive = true;
+          totalIn += amt;
+          flowDir = `存入 / 轉入 (來源: ${src === tgt ? '政府補助/親友' : src})`;
+          colorClass = 'text-emerald-600';
+        } else if (tgt === normName && src !== normName) {
           isPositive = true;
           totalIn += amt;
           flowDir = `存入 / 轉入 (來源: ${src})`;
@@ -872,6 +876,106 @@ class XuanMuFinanceApp {
 
     document.getElementById('btn-filter-main-table').onclick = () => {
       this.searchKeyword.value = normName;
+      this.renderTransactionsTable();
+      this.closeModal(modal);
+      document.getElementById('transactions-section').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    modal.classList.remove('hidden');
+  }
+
+  // Open Breakdown Modal for Top Overview Summary Cards
+  openOverviewFundDetailsModal(fundType) {
+    const modal = document.getElementById('modal-account-details');
+    const title = document.getElementById('account-details-title');
+    const balEl = document.getElementById('account-details-balance');
+    const inEl = document.getElementById('account-details-inflow');
+    const outEl = document.getElementById('account-details-outflow');
+    const countEl = document.getElementById('account-details-count');
+    const list = document.getElementById('account-details-list');
+
+    const data = this.calculateBalances();
+    let filteredTxs = [];
+    let displayTitle = '';
+    let iconClass = 'fa-wallet';
+
+    if (fundType === 'total') {
+      displayTitle = '育兒總資金 (TOTAL) - 跨帳戶收支與交易紀錄';
+      iconClass = 'fa-coins text-amber-500';
+      filteredTxs = [...this.transactions];
+      balEl.textContent = `$${data.totalAssets.toLocaleString()}`;
+    } else if (fundType === '宣穆戶頭') {
+      displayTitle = '宣穆戶頭 (積蓄) - 生育給付與津貼明細';
+      iconClass = 'fa-piggy-bank text-emerald-500';
+      filteredTxs = this.transactions.filter(t => t.fund === '宣穆戶頭');
+      balEl.textContent = `$${data.xuanmuAccount.toLocaleString()}`;
+    } else if (fundType === '宣穆投資') {
+      displayTitle = '宣穆投資與其他 - 萌媽資助與投資明細';
+      iconClass = 'fa-chart-line text-purple-500';
+      filteredTxs = this.transactions.filter(t => t.fund === '宣穆投資' || t.fund === '其他');
+      balEl.textContent = `$${(data.xuanmuInvest + data.otherFund).toLocaleString()}`;
+    }
+
+    title.innerHTML = `<i class="fa-solid ${iconClass}"></i> ${displayTitle}`;
+
+    filteredTxs.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
+
+    let totalIn = 0;
+    let totalOut = 0;
+    list.innerHTML = '';
+
+    if (filteredTxs.length === 0) {
+      list.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">目前尚無相關交易紀錄</div>`;
+    } else {
+      filteredTxs.forEach(t => {
+        const src = this.normalizeAccountName(t.sourceAccount, t.type === '收入');
+        const tgt = this.normalizeAccountName(t.targetAccount);
+        const amt = Number(t.amount) || 0;
+
+        let flowDir = '';
+        let colorClass = '';
+        let isPositive = false;
+
+        if (t.type === '收入') {
+          isPositive = true;
+          totalIn += amt;
+          flowDir = `存入 / 轉入 (來源: ${src === tgt ? '政府補助/親友' : src})`;
+          colorClass = 'text-emerald-600';
+        } else {
+          totalOut += amt;
+          flowDir = `支出 / 轉出 (去向: ${tgt})`;
+          colorClass = 'text-rose-600';
+        }
+
+        const item = document.createElement('div');
+        item.className = 'p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between hover:bg-amber-50/60 transition-colors';
+        item.innerHTML = `
+          <div class="space-y-0.5">
+            <div class="font-extrabold text-slate-800 text-xs flex items-center gap-2">
+              <span>${t.note || t.category}</span>
+              <span class="text-[10px] px-2 py-0.2 rounded-full ${isPositive ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'} font-bold">${t.type}</span>
+            </div>
+            <div class="text-[11px] text-slate-500">${t.date} ｜ ${flowDir}</div>
+          </div>
+          <div class="text-right">
+            <div class="font-black text-sm ${colorClass}">
+              ${isPositive ? '+' : '-'}$${amt.toLocaleString()}
+            </div>
+            <button onclick="app.editTransaction('${t.id}'); app.closeModal(document.getElementById('modal-account-details'))" class="text-[10px] text-amber-600 font-bold hover:underline">
+              <i class="fa-solid fa-pen"></i> 編輯
+            </button>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    inEl.textContent = `+$${totalIn.toLocaleString()}`;
+    outEl.textContent = `-$${totalOut.toLocaleString()}`;
+    countEl.textContent = filteredTxs.length;
+
+    document.getElementById('btn-filter-main-table').onclick = () => {
+      this.searchKeyword.value = fundType === 'total' ? '' : fundType;
       this.renderTransactionsTable();
       this.closeModal(modal);
       document.getElementById('transactions-section').scrollIntoView({ behavior: 'smooth' });
@@ -944,7 +1048,6 @@ class XuanMuFinanceApp {
     }
   }
 
-  // Render Transactions Table Strictly Sorted Date Descending (Newest on top)
   renderTransactionsTable() {
     const tbody = document.getElementById('transaction-tbody');
     tbody.innerHTML = '';
@@ -953,7 +1056,6 @@ class XuanMuFinanceApp {
     const typeFilter = this.filterType.value;
     const keyword = this.searchKeyword.value.trim().toLowerCase();
 
-    // Strict Date Descending Sort (Newest Date on Top)
     const filtered = this.transactions
       .filter(tx => {
         if (fundFilter !== 'all' && tx.fund !== fundFilter) return false;

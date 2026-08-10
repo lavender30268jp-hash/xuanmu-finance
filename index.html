@@ -82,25 +82,25 @@
     <!-- Top Summary Dashboard Cards (4 Cards Grid) -->
     <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       
-      <!-- Card 1: Total Assets -->
-      <div class="bg-white p-5 rounded-3xl border border-amber-200/80 shadow-sm relative overflow-hidden">
+      <!-- Card 1: Total Assets (Clickable) -->
+      <div onclick="app.openOverviewFundDetailsModal('total')" class="bg-white p-5 rounded-3xl border border-amber-200/80 shadow-sm relative overflow-hidden cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group">
         <div class="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-          <span>育兒總資金 (Total)</span>
+          <span class="group-hover:text-amber-600 transition-colors">育兒總資金 (Total)</span>
           <i class="fa-solid fa-wallet text-amber-500 text-base"></i>
         </div>
         <div id="card-total-assets" class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">
           $450,000
         </div>
         <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <span>跨帳戶現金總計</span>
-          <span id="badge-total-transactions" class="bg-slate-100 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">11 筆交易紀錄</span>
+          <span>跨帳戶現金總計 (點擊看明細)</span>
+          <span id="badge-total-transactions" class="bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full text-[11px] font-bold group-hover:bg-amber-500 group-hover:text-white transition-colors">11 筆紀錄 ➔</span>
         </div>
       </div>
 
-      <!-- Card 2: XuanMu Savings (宣穆戶頭) -->
-      <div class="bg-white p-5 rounded-3xl border border-emerald-200/80 shadow-sm relative overflow-hidden">
+      <!-- Card 2: XuanMu Savings (宣穆戶頭 - Clickable) -->
+      <div onclick="app.openOverviewFundDetailsModal('宣穆戶頭')" class="bg-white p-5 rounded-3xl border border-emerald-200/80 shadow-sm relative overflow-hidden cursor-pointer hover:border-emerald-400 hover:shadow-md transition-all group">
         <div class="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-          <span class="text-emerald-700 flex items-center gap-1.5 font-bold">
+          <span class="text-emerald-700 flex items-center gap-1.5 font-bold group-hover:text-emerald-800 transition-colors">
             <i class="fa-solid fa-piggy-bank text-emerald-500"></i> 宣穆戶頭 (積蓄)
           </span>
           <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">專款專用</span>
@@ -108,15 +108,16 @@
         <div id="card-xuanmu-account" class="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">
           $125,000
         </div>
-        <p class="text-[11px] text-slate-500 mt-2.5 font-medium">
-          生育給付 $100k + 加碼 $20k + 津貼
-        </p>
+        <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-500">
+          <span>生育給付 $100k + 加碼 $20k + 津貼</span>
+          <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-bold group-hover:bg-emerald-600 group-hover:text-white transition-colors">明細 ➔</span>
+        </div>
       </div>
 
-      <!-- Card 3: XuanMu Fund (宣穆基金) -->
-      <div class="bg-white p-5 rounded-3xl border border-teal-200/80 shadow-sm relative overflow-hidden">
+      <!-- Card 3: XuanMu Fund (宣穆基金 - Clickable) -->
+      <div onclick="app.openBudgetBreakdownModal('annual')" class="bg-white p-5 rounded-3xl border border-teal-200/80 shadow-sm relative overflow-hidden cursor-pointer hover:border-teal-400 hover:shadow-md transition-all group">
         <div class="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-          <span class="text-teal-700 flex items-center gap-1.5 font-bold">
+          <span class="text-teal-700 flex items-center gap-1.5 font-bold group-hover:text-teal-800 transition-colors">
             <i class="fa-solid fa-hand-holding-dollar text-teal-500"></i> 宣穆基金 (營運)
           </span>
           <span class="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold">萌爸36萬/年</span>
@@ -124,15 +125,16 @@
         <div id="card-xuanmu-fund" class="text-2xl sm:text-3xl font-black text-teal-600 tracking-tight">
           $325,000
         </div>
-        <p class="text-[11px] text-slate-500 mt-2.5 font-medium">
-          共同小雞與 LINE 阿萌撥款池
-        </p>
+        <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-500">
+          <span>共同小雞與 LINE 阿萌撥款池</span>
+          <span class="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-md font-bold group-hover:bg-teal-600 group-hover:text-white transition-colors">明細 ➔</span>
+        </div>
       </div>
 
-      <!-- Card 4: XuanMu Investment (宣穆投資) + Other -->
-      <div class="bg-white p-5 rounded-3xl border border-purple-200/80 shadow-sm relative overflow-hidden">
+      <!-- Card 4: XuanMu Investment (宣穆投資與其他 - Clickable) -->
+      <div onclick="app.openOverviewFundDetailsModal('宣穆投資')" class="bg-white p-5 rounded-3xl border border-purple-200/80 shadow-sm relative overflow-hidden cursor-pointer hover:border-purple-400 hover:shadow-md transition-all group">
         <div class="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-          <span class="text-purple-700 flex items-center gap-1.5 font-bold">
+          <span class="text-purple-700 flex items-center gap-1.5 font-bold group-hover:text-purple-800 transition-colors">
             <i class="fa-solid fa-chart-line text-purple-500"></i> 宣穆投資與其他
           </span>
           <span class="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full font-bold">理財規劃</span>
@@ -140,9 +142,10 @@
         <div id="card-xuanmu-invest" class="text-2xl sm:text-3xl font-black text-purple-600 tracking-tight">
           $20,000
         </div>
-        <p class="text-[11px] text-slate-500 mt-2.5 font-medium">
-          含萌媽 $20k 贊助與未來投資理財
-        </p>
+        <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-500">
+          <span>含萌媽 $20k 贊助與未來投資理財</span>
+          <span class="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md font-bold group-hover:bg-purple-600 group-hover:text-white transition-colors">明細 ➔</span>
+        </div>
       </div>
 
     </section>
@@ -646,7 +649,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260810-v9"></script>
+  <script src="app.js?v=20260810-v10"></script>
   <!-- Modal 6: Account Breakdown & Transaction Details -->
   <div id="modal-account-details" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
