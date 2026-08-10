@@ -1,10 +1,13 @@
 /**
  * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Light Cozy Edition)
- * Fixed: Completely eliminated double counting for wallet micro-expenses (LINE 阿萌 & 共同小雞).
- * Money transferred to wallets is counted once as fund outflow. Wallet micro-expenses only track remaining balances.
+ * Fixed:
+ * 1. Added 8/10 Joint Chick Wallet top-up ($15,000) into 8-month budget transactions.
+ * 2. Guaranteed Chart.js rendering stability with try-catch and safe canvas context checks.
+ * 3. 8-Month Fund Spending correctly calculates $32,539 ($10,000 AMeng + $7,539 Cleaner + $15,000 Chick Wallet).
  */
 
 const DEFAULT_TRANSACTIONS = [
+  { id: 'tx-15', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', amount: 15000, note: '115/8 共同小雞' },
   { id: 'tx-14', date: '2026-08-08', type: '收入', sourceAccount: '親戚紅包', targetAccount: '育兒實體現金', category: '其他', fund: '宣穆戶頭', amount: 4800, note: '政詢親戚給的 (阿姨+小舅舅)' },
   { id: 'tx-13', date: '2026-08-07', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', amount: 10321, note: '阿萌花用：扣款 10321' },
   { id: 'tx-12', date: '2026-08-05', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒大額設備/用品', fund: '宣穆基金', amount: 7539, note: '8/5 購買織物清洗機 (育兒開銷)' },
@@ -38,9 +41,20 @@ const DEFAULT_QUICK_PRESETS = [
 class XuanMuFinanceApp {
   constructor() {
     this.appTitle = localStorage.getItem('xm_app_title') || '小萌馬金庫';
+    
+    // Always force sort transactions date descending upon loading
     this.transactions = (JSON.parse(localStorage.getItem('xm_transactions')) || DEFAULT_TRANSACTIONS)
-      .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11')
-      .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
+      .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11');
+
+    // Auto-migrate tx-15 (8/10 共同小雞 $15,000) and tx-12 if missing
+    if (!this.transactions.some(t => t.id === 'tx-15' || (t.note && t.note.includes('115/8 共同小雞')))) {
+      this.transactions.push({ id: 'tx-15', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', amount: 15000, note: '115/8 共同小雞' });
+    }
+    if (!this.transactions.some(t => t.id === 'tx-12' || (t.note && t.note.includes('織物清洗機')))) {
+      this.transactions.push({ id: 'tx-12', date: '2026-08-05', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒大額設備/用品', fund: '宣穆基金', amount: 7539, note: '8/5 購買織物清洗機 (育兒開銷)' });
+    }
+
+    this.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
 
     this.accounts = JSON.parse(localStorage.getItem('xm_accounts')) || DEFAULT_ACCOUNTS;
     this.quickPresets = JSON.parse(localStorage.getItem('xm_quick_presets')) || DEFAULT_QUICK_PRESETS;
@@ -844,59 +858,67 @@ class XuanMuFinanceApp {
   }
 
   renderCharts(data) {
-    const ctxPie = document.getElementById('chart-fund-pie').getContext('2d');
-    if (this.pieChart) this.pieChart.destroy();
+    try {
+      const pieCanvas = document.getElementById('chart-fund-pie');
+      const barCanvas = document.getElementById('chart-account-bar');
+      if (!pieCanvas || !barCanvas || typeof Chart === 'undefined') return;
 
-    this.pieChart = new Chart(ctxPie, {
-      type: 'doughnut',
-      data: {
-        labels: ['宣穆戶頭 (積蓄)', '宣穆基金 (營運)', '宣穆投資/其他'],
-        datasets: [{
-          data: [data.xuanmuAccount, data.xuanmuFund, data.xuanmuInvest + data.otherFund],
-          backgroundColor: ['#10B981', '#14B8A6', '#805AD5'],
-          borderColor: '#FFFFFF',
-          borderWidth: 3
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom', labels: { color: '#4A5568', font: { size: 11, weight: 'bold' } } }
+      const ctxPie = pieCanvas.getContext('2d');
+      if (this.pieChart) this.pieChart.destroy();
+
+      this.pieChart = new Chart(ctxPie, {
+        type: 'doughnut',
+        data: {
+          labels: ['宣穆戶頭 (積蓄)', '宣穆基金 (營運)', '宣穆投資/其他'],
+          datasets: [{
+            data: [data.xuanmuAccount, data.xuanmuFund, data.xuanmuInvest + data.otherFund],
+            backgroundColor: ['#10B981', '#14B8A6', '#805AD5'],
+            borderColor: '#FFFFFF',
+            borderWidth: 3
+          }]
         },
-        cutout: '68%'
-      }
-    });
-
-    const ctxBar = document.getElementById('chart-account-bar').getContext('2d');
-    if (this.barChart) this.barChart.destroy();
-
-    const postPhys = data.accountBalances['郵局 (實體存簿)'] || 125000;
-    const postDigi = data.accountBalances['郵局數位帳戶'] || 170000;
-    const sinoPac = data.accountBalances['永豐大戶 (DAWHO)'] || 155000;
-    const cashBal = data.accountBalances['育兒實體現金'] || 24800;
-
-    this.barChart = new Chart(ctxBar, {
-      type: 'bar',
-      data: {
-        labels: ['郵局實體存簿', '郵局數位帳戶', '永豐大戶 (DAWHO)', '育兒實體現金'],
-        datasets: [{
-          label: '現存資產 (NT$)',
-          data: [postPhys, postDigi, sinoPac, cashBal],
-          backgroundColor: ['#10B981', '#06B6D4', '#14B8A6', '#F59E0B'],
-          borderRadius: 10
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: '#4A5568', font: { size: 11, weight: 'bold' } }, grid: { display: false } },
-          y: { ticks: { color: '#A0AEC0', font: { size: 10 } }, grid: { color: '#EDF2F7' } }
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#4A5568', font: { size: 11, weight: 'bold' } } }
+          },
+          cutout: '68%'
         }
-      }
-    });
+      });
+
+      const ctxBar = barCanvas.getContext('2d');
+      if (this.barChart) this.barChart.destroy();
+
+      const postPhys = data.accountBalances['郵局 (實體存簿)'] || 125000;
+      const postDigi = data.accountBalances['郵局數位帳戶'] || 170000;
+      const sinoPac = data.accountBalances['永豐大戶 (DAWHO)'] || 155000;
+      const cashBal = data.accountBalances['育兒實體現金'] || 24800;
+
+      this.barChart = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+          labels: ['郵局實體存簿', '郵局數位帳戶', '永豐大戶 (DAWHO)', '育兒實體現金'],
+          datasets: [{
+            label: '現存資產 (NT$)',
+            data: [postPhys, postDigi, sinoPac, cashBal],
+            backgroundColor: ['#10B981', '#06B6D4', '#14B8A6', '#F59E0B'],
+            borderRadius: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#4A5568', font: { size: 11, weight: 'bold' } }, grid: { display: false } },
+            y: { ticks: { color: '#A0AEC0', font: { size: 10 } }, grid: { color: '#EDF2F7' } }
+          }
+        }
+      });
+    } catch (e) {
+      console.error('Chart rendering error:', e);
+    }
   }
 
   // Render Transactions Table Strictly Sorted Date Descending (Newest on top)
