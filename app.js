@@ -1,22 +1,22 @@
 /**
  * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Light Cozy Edition)
- * Added Interactive Account Breakdown Modal (點擊卡片彈出獨立收支明細與紀錄清單).
+ * Fixed: All transactions are now strictly sorted by date descending (最新日期顯示在最上方).
  * Real-time Auto-Syncing & Polling Engine across phone & desktop.
  */
 
 const DEFAULT_TRANSACTIONS = [
-  { id: 'tx-1', date: '2026-06-22', type: '收入', sourceAccount: '政府補助/現金', targetAccount: '郵局 (實體存簿)', category: '單次津貼', fund: '宣穆戶頭', amount: 20000, note: '台中市加碼津貼' },
-  { id: 'tx-2', date: '2026-06-30', type: '收入', sourceAccount: '政府補助/現金', targetAccount: '郵局 (實體存簿)', category: '單次津貼', fund: '宣穆戶頭', amount: 100000, note: '生育津貼' },
-  { id: 'tx-3', date: '2026-07-08', type: '收入', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '永豐大戶 (DAWHO)', category: '萌爸', fund: '宣穆基金', amount: 360000, note: '115/7-116/7宣穆津貼' },
-  { id: 'tx-4', date: '2026-07-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', amount: 15000, note: '115/7 共同小雞' },
-  { id: 'tx-5', date: '2026-07-10', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '郵局數位帳戶', category: '轉帳', fund: '宣穆基金', amount: 180000, note: '永豐轉入郵局數位帳戶' },
-  { id: 'tx-6', date: '2026-07-15', type: '收入', sourceAccount: '郵局 (實體存簿)', targetAccount: '郵局 (實體存簿)', category: '固定收入', fund: '宣穆戶頭', amount: 5000, note: '育兒津貼6月' },
-  { id: 'tx-7', date: '2026-07-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: 'LINE 阿萌', category: '每月開銷', fund: '宣穆基金', amount: 10000, note: '7/19 阿萌小雞' },
-  { id: 'tx-8', date: '2026-07-20', type: '收入', sourceAccount: '萌媽資助', targetAccount: '育兒實體現金', category: '萌媽', fund: '其他', amount: 20000, note: '萌媽點外送資助 (現金)' },
-  { id: 'tx-9', date: '2026-08-01', type: '支出', sourceAccount: '郵局數位帳戶', targetAccount: 'LINE 阿萌', category: '每月開銷', fund: '宣穆基金', amount: 10000, note: '8/1 阿萌小雞' },
-  { id: 'tx-12', date: '2026-08-05', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒大額設備/用品', fund: '宣穆基金', amount: 7539, note: '8/5 購買織物清洗機 (育兒開銷)' },
+  { id: 'tx-14', date: '2026-08-08', type: '收入', sourceAccount: '親戚紅包', targetAccount: '育兒實體現金', category: '其他', fund: '宣穆戶頭', amount: 4800, note: '政詢親戚給的 (阿姨+小舅舅)' },
   { id: 'tx-13', date: '2026-08-07', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', amount: 10321, note: '阿萌花用：扣款 10321' },
-  { id: 'tx-14', date: '2026-08-08', type: '收入', sourceAccount: '親戚紅包', targetAccount: '育兒實體現金', category: '其他', fund: '宣穆戶頭', amount: 4800, note: '政詢親戚給的 (阿姨+小舅舅)' }
+  { id: 'tx-12', date: '2026-08-05', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒大額設備/用品', fund: '宣穆基金', amount: 7539, note: '8/5 購買織物清洗機 (育兒開銷)' },
+  { id: 'tx-9', date: '2026-08-01', type: '支出', sourceAccount: '郵局數位帳戶', targetAccount: 'LINE 阿萌', category: '每月開銷', fund: '宣穆基金', amount: 10000, note: '8/1 阿萌小雞' },
+  { id: 'tx-8', date: '2026-07-20', type: '收入', sourceAccount: '萌媽資助', targetAccount: '育兒實體現金', category: '萌媽', fund: '其他', amount: 20000, note: '萌媽點外送資助 (現金)' },
+  { id: 'tx-7', date: '2026-07-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: 'LINE 阿萌', category: '每月開銷', fund: '宣穆基金', amount: 10000, note: '7/19 阿萌小雞' },
+  { id: 'tx-6', date: '2026-07-15', type: '收入', sourceAccount: '郵局 (實體存簿)', targetAccount: '郵局 (實體存簿)', category: '固定收入', fund: '宣穆戶頭', amount: 5000, note: '育兒津貼6月' },
+  { id: 'tx-5', date: '2026-07-10', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '郵局數位帳戶', category: '轉帳', fund: '宣穆基金', amount: 180000, note: '永豐轉入郵局數位帳戶' },
+  { id: 'tx-4', date: '2026-07-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', amount: 15000, note: '115/7 共同小雞' },
+  { id: 'tx-3', date: '2026-07-08', type: '收入', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '永豐大戶 (DAWHO)', category: '萌爸', fund: '宣穆基金', amount: 360000, note: '115/7-116/7宣穆津貼' },
+  { id: 'tx-2', date: '2026-06-30', type: '收入', sourceAccount: '政府補助/現金', targetAccount: '郵局 (實體存簿)', category: '單次津貼', fund: '宣穆戶頭', amount: 100000, note: '生育津貼' },
+  { id: 'tx-1', date: '2026-06-22', type: '收入', sourceAccount: '政府補助/現金', targetAccount: '郵局 (實體存簿)', category: '單次津貼', fund: '宣穆戶頭', amount: 20000, note: '台中市加碼津貼' }
 ];
 
 const DEFAULT_ACCOUNTS = [
@@ -635,6 +635,9 @@ class XuanMuFinanceApp {
       summary.innerHTML = `萌爸基金歷次累積支出：<span class="text-amber-700 font-black text-sm">$${total.toLocaleString()}</span> 元 (剩餘基金 $${(360000 - total).toLocaleString()} 元)`;
     }
 
+    // Sort items date descending
+    items.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
+
     if (items.length === 0) {
       list.innerHTML = `<div class="text-center py-6 text-slate-400">目前尚無支出紀錄</div>`;
     } else {
@@ -740,11 +743,13 @@ class XuanMuFinanceApp {
 
     title.innerHTML = `<i class="fa-solid ${acc.icon || 'fa-wallet'} text-amber-500"></i> ${normName} - 收支與交易明細`;
 
-    const txs = this.transactions.filter(t => {
-      const src = this.normalizeAccountName(t.sourceAccount, t.type === '收入');
-      const tgt = this.normalizeAccountName(t.targetAccount);
-      return src === normName || tgt === normName;
-    });
+    const txs = this.transactions
+      .filter(t => {
+        const src = this.normalizeAccountName(t.sourceAccount, t.type === '收入');
+        const tgt = this.normalizeAccountName(t.targetAccount);
+        return src === normName || tgt === normName;
+      })
+      .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
 
     let totalIn = 0;
     let totalOut = 0;
@@ -875,6 +880,7 @@ class XuanMuFinanceApp {
     });
   }
 
+  // Render Transactions Table Strictly Sorted Date Descending (Newest on top)
   renderTransactionsTable() {
     const tbody = document.getElementById('transaction-tbody');
     tbody.innerHTML = '';
@@ -883,18 +889,25 @@ class XuanMuFinanceApp {
     const typeFilter = this.filterType.value;
     const keyword = this.searchKeyword.value.trim().toLowerCase();
 
-    const filtered = this.transactions.filter(tx => {
-      if (fundFilter !== 'all' && tx.fund !== fundFilter) return false;
-      if (typeFilter !== 'all' && tx.type !== typeFilter) return false;
-      if (keyword) {
-        const matchNote = (tx.note || '').toLowerCase().includes(keyword);
-        const matchCat = (tx.category || '').toLowerCase().includes(keyword);
-        const matchSrc = (tx.sourceAccount || '').toLowerCase().includes(keyword);
-        const matchTgt = (tx.targetAccount || '').toLowerCase().includes(keyword);
-        if (!matchNote && !matchCat && !matchSrc && !matchTgt) return false;
-      }
-      return true;
-    });
+    // Strict Date Descending Sort (Newest Date on Top)
+    const filtered = this.transactions
+      .filter(tx => {
+        if (fundFilter !== 'all' && tx.fund !== fundFilter) return false;
+        if (typeFilter !== 'all' && tx.type !== typeFilter) return false;
+        if (keyword) {
+          const matchNote = (tx.note || '').toLowerCase().includes(keyword);
+          const matchCat = (tx.category || '').toLowerCase().includes(keyword);
+          const matchSrc = (tx.sourceAccount || '').toLowerCase().includes(keyword);
+          const matchTgt = (tx.targetAccount || '').toLowerCase().includes(keyword);
+          if (!matchNote && !matchCat && !matchSrc && !matchTgt) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        const dateDiff = (b.date || '').localeCompare(a.date || '');
+        if (dateDiff !== 0) return dateDiff;
+        return (b.id || '').localeCompare(a.id || '');
+      });
 
     if (filtered.length === 0) {
       tbody.innerHTML = `
