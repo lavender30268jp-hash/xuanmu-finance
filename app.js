@@ -1,7 +1,7 @@
 /**
  * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Light Cozy Edition)
- * Fixed: All transactions are now strictly sorted by date descending (最新日期顯示在最上方).
- * Real-time Auto-Syncing & Polling Engine across phone & desktop.
+ * Fixed: Completely eliminated double counting for wallet micro-expenses (LINE 阿萌 & 共同小雞).
+ * Money transferred to wallets is counted once as fund outflow. Wallet micro-expenses only track remaining balances.
  */
 
 const DEFAULT_TRANSACTIONS = [
@@ -38,19 +38,22 @@ const DEFAULT_QUICK_PRESETS = [
 class XuanMuFinanceApp {
   constructor() {
     this.appTitle = localStorage.getItem('xm_app_title') || '小萌馬金庫';
-    // Always force sort transactions date descending upon loading from localStorage/DEFAULT
     this.transactions = (JSON.parse(localStorage.getItem('xm_transactions')) || DEFAULT_TRANSACTIONS)
       .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11')
       .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
 
-    // Ensure acc-cash is present in accounts list
+    this.accounts = JSON.parse(localStorage.getItem('xm_accounts')) || DEFAULT_ACCOUNTS;
+    this.quickPresets = JSON.parse(localStorage.getItem('xm_quick_presets')) || DEFAULT_QUICK_PRESETS;
+    this.subsidyRule = localStorage.getItem('xm_subsidy_rule') || 'child';
+    this.syncRoomKey = localStorage.getItem('xm_sync_room') || 'hughtong-2026';
+    this.lastUpdatedAt = localStorage.getItem('xm_last_updated_at') || '';
+
     if (!this.accounts.some(a => a.id === 'acc-cash' || a.name === '育兒實體現金')) {
       this.accounts.splice(3, 0, { id: 'acc-cash', name: '育兒實體現金', group: '實體現金', icon: 'fa-money-bill-wave text-amber-500', badge: '手邊現金/紅包', note: '收到的親友紅包與現金資助 (尚未存入銀行卡)' });
     }
 
     this.quickPresets = DEFAULT_QUICK_PRESETS;
 
-    // Normalize account names
     this.transactions = this.transactions.map(tx => {
       let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
       let tgt = this.normalizeAccountName(tx.targetAccount);
@@ -71,7 +74,6 @@ class XuanMuFinanceApp {
     this.bindEvents();
     this.render();
 
-    // Initial Pull & Auto Polling Timer for Real-Time Syncing (every 2.5 seconds)
     this.pullFromCloud();
     setInterval(() => this.pullFromCloud(true), 2500);
 
@@ -179,14 +181,12 @@ class XuanMuFinanceApp {
         quickPresets: this.quickPresets
       };
       
-      // 1. Post to local server endpoint /api/sync
       await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       }).catch(() => {});
 
-      // 2. Backup post to cloud npoint
       await fetch(`https://api.npoint.io/c1e345e5d36e2f4762e8`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -212,7 +212,6 @@ class XuanMuFinanceApp {
           
           if (res.appTitle) this.appTitle = res.appTitle;
 
-          // Always filter out tx-10 & tx-11 and sort date descending
           this.transactions = res.transactions
             .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11')
             .map(tx => {
@@ -266,17 +265,21 @@ class XuanMuFinanceApp {
       const src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
       const tgt = this.normalizeAccountName(tx.targetAccount);
 
-      // 1. Fund Totals
+      const isFromWallet = src.includes('錢包') || src.includes('阿萌');
+
+      // 1. Fund Totals (Exclude wallet micro-expenses from fund deduction to prevent double counting!)
       if (tx.type === '收入') {
         if (tx.fund === '宣穆戶頭') xuanmuAccount += amt;
         else if (tx.fund === '宣穆基金') xuanmuFund += amt;
         else if (tx.fund === '宣穆投資') xuanmuInvest += amt;
         else otherFund += amt;
       } else if (tx.type === '支出') {
-        if (tx.fund === '宣穆戶頭') xuanmuAccount -= amt;
-        else if (tx.fund === '宣穆基金') xuanmuFund -= amt;
-        else if (tx.fund === '宣穆投資') xuanmuInvest -= amt;
-        else otherFund -= amt;
+        if (!isFromWallet) {
+          if (tx.fund === '宣穆戶頭') xuanmuAccount -= amt;
+          else if (tx.fund === '宣穆基金') xuanmuFund -= amt;
+          else if (tx.fund === '宣穆投資') xuanmuInvest -= amt;
+          else otherFund -= amt;
+        }
       }
 
       // 2. Account & Outflow Wallet Balances
@@ -571,6 +574,7 @@ class XuanMuFinanceApp {
   renderBudgetTrackers(data) {
     const annualTotal = 360000;
     
+    // EXCLUDE micro-expenses FROM outflow wallets (LINE 阿萌 / 共同小雞) to avoid double counting!
     const spentFromFund = this.transactions
       .filter(tx => tx.fund === '宣穆基金' && tx.type === '支出' && !tx.sourceAccount.includes('錢包') && !tx.sourceAccount.includes('阿萌'))
       .reduce((sum, tx) => sum + Number(tx.amount), 0);
@@ -594,6 +598,7 @@ class XuanMuFinanceApp {
 
     const currentMonthPrefix = '2026-08';
     
+    // August Fund Spending: ONLY count transfers to wallets or direct fund purchases, NOT micro-expenses FROM wallets!
     const augustSpent = this.transactions
       .filter(tx => tx.fund === '宣穆基金' && tx.type === '支出' && tx.date.startsWith(currentMonthPrefix) && !tx.sourceAccount.includes('錢包') && !tx.sourceAccount.includes('阿萌'))
       .reduce((sum, tx) => sum + Number(tx.amount), 0);
@@ -608,7 +613,7 @@ class XuanMuFinanceApp {
     document.getElementById('monthly-progress-fill').style.width = `${augustPercent}%`;
 
     const monthlyTip = document.getElementById('monthly-pace-tip').querySelector('span');
-    monthlyTip.textContent = `8 月累積宣穆基金支出 $${augustSpent.toLocaleString()} 元 (含8/1阿萌1萬 + 8/5織物清洗機$7539)，尚剩餘 $${augustRemaining.toLocaleString()} 元預算。點擊查看明細！`;
+    monthlyTip.textContent = `8 月累積宣穆基金撥款與支出 $${augustSpent.toLocaleString()} 元 (含8/1阿萌1萬 + 8/5清洗機$7539 + 8/10小雞1.5萬)，尚剩餘 $${augustRemaining.toLocaleString()} 元預算。點擊查看明細！`;
   }
 
   openBudgetBreakdownModal(mode) {
@@ -621,15 +626,32 @@ class XuanMuFinanceApp {
 
     let items = [];
     if (mode === 'monthly') {
-      title.innerHTML = `<i class="fa-solid fa-calendar-day text-teal-600"></i> 2026/08 八月份開銷與撥款明細`;
-      items = this.transactions.filter(tx => tx.fund === '宣穆基金' && tx.type === '支出' && tx.date.startsWith('2026-08'));
+      title.innerHTML = `<i class="fa-solid fa-calendar-day text-teal-600"></i> 2026/08 八月份宣穆基金撥款與支出明細`;
+      
+      // EXCLUDE wallet micro-expenses to prevent double counting!
+      items = this.transactions.filter(tx => 
+        tx.fund === '宣穆基金' && 
+        tx.type === '支出' && 
+        tx.date.startsWith('2026-08') && 
+        !tx.sourceAccount.includes('錢包') && 
+        !tx.sourceAccount.includes('阿萌')
+      );
+
       const total = items.reduce((sum, t) => sum + Number(t.amount), 0);
-      summary.innerHTML = `八月累積開銷總計：<span class="text-teal-700 font-black text-sm">$${total.toLocaleString()}</span> 元 (預算額度 $30,000 元，剩餘 $${(30000 - total).toLocaleString()} 元)`;
+      summary.innerHTML = `八月累積基金撥款與支出：<span class="text-teal-700 font-black text-sm">$${total.toLocaleString()}</span> 元 (預算額度 $30,000 元，剩餘 $${Math.max(0, 30000 - total).toLocaleString()} 元)<div class="text-[11px] text-amber-800 mt-1">💡 小雞與阿萌錢包內的零星扣款已在撥款時一次扣算完畢，不在此重複累加！</div>`;
     } else {
-      title.innerHTML = `<i class="fa-solid fa-shield-halved text-amber-500"></i> 萌爸 36 萬基金歷次開銷明細`;
-      items = this.transactions.filter(tx => tx.fund === '宣穆基金' && tx.type === '支出');
+      title.innerHTML = `<i class="fa-solid fa-shield-halved text-amber-500"></i> 萌爸 36 萬基金歷次開銷與撥款明細`;
+
+      // EXCLUDE wallet micro-expenses to prevent double counting!
+      items = this.transactions.filter(tx => 
+        tx.fund === '宣穆基金' && 
+        tx.type === '支出' && 
+        !tx.sourceAccount.includes('錢包') && 
+        !tx.sourceAccount.includes('阿萌')
+      );
+
       const total = items.reduce((sum, t) => sum + Number(t.amount), 0);
-      summary.innerHTML = `萌爸基金歷次累積支出：<span class="text-amber-700 font-black text-sm">$${total.toLocaleString()}</span> 元 (剩餘基金 $${(360000 - total).toLocaleString()} 元)`;
+      summary.innerHTML = `萌爸基金歷次累積撥出：<span class="text-amber-700 font-black text-sm">$${total.toLocaleString()}</span> 元 (剩餘基金 $${(360000 - total).toLocaleString()} 元)`;
     }
 
     // Sort items date descending
