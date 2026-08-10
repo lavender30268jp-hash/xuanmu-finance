@@ -1,9 +1,9 @@
 /**
  * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Light Cozy Edition)
  * Fixed:
- * 1. Added 8/10 Joint Chick Wallet top-up ($15,000) into 8-month budget transactions.
- * 2. Guaranteed Chart.js rendering stability with try-catch and safe canvas context checks.
- * 3. 8-Month Fund Spending correctly calculates $32,539 ($10,000 AMeng + $7,539 Cleaner + $15,000 Chick Wallet).
+ * 1. Corrected wallet topUp vs spent math so self-transfers (共同小雞 ➔ 共同小雞) properly reduce remaining balance.
+ * 2. Added Date prompt to Quick Presets (小雞花用 & 萌 LINE 花用可自由選擇補登過去日期).
+ * 3. 共同小雞錢包 remaining balance correctly displays $23,075 ($30,000 topup - $6,925 spent).
  */
 
 const DEFAULT_TRANSACTIONS = [
@@ -32,8 +32,8 @@ const DEFAULT_ACCOUNTS = [
 ];
 
 const DEFAULT_QUICK_PRESETS = [
-  { id: 'qp-chick', name: '🐥 小雞花用 (扣小雞錢包)', mode: 'prompt-chick', icon: 'fa-cart-shopping text-rose-500', border: 'border-rose-200 hover:border-rose-400 bg-rose-50/30', desc: '按下去輸入金額，扣小雞錢包' },
-  { id: 'qp-among', name: '💬 萌 LINE 花用 (扣阿萌錢包)', mode: 'prompt-among', icon: 'fa-comment text-emerald-500', border: 'border-emerald-200 hover:border-emerald-400 bg-emerald-50/30', desc: '按下去輸入金額，扣 LINE 阿萌' },
+  { id: 'qp-chick', name: '🐥 小雞花用 (扣小雞錢包)', mode: 'prompt-chick', icon: 'fa-cart-shopping text-rose-500', border: 'border-rose-200 hover:border-rose-400 bg-rose-50/30', desc: '按下去輸入金額與日期，扣小雞錢包' },
+  { id: 'qp-among', name: '💬 萌 LINE 花用 (扣阿萌錢包)', mode: 'prompt-among', icon: 'fa-comment text-emerald-500', border: 'border-emerald-200 hover:border-emerald-400 bg-emerald-50/30', desc: '按下去輸入金額與日期，扣 LINE 阿萌' },
   { id: 'qp-single', name: '🛍️ 宣穆基金單筆育兒支出', mode: 'prompt-single', icon: 'fa-bag-shopping text-purple-500', border: 'border-purple-200 hover:border-purple-400 bg-purple-50/30', desc: '例：買織物清洗機/大額用品' },
   { id: 'qp-topup-chick', name: '➕ 共同小雞 (撥款 1.5萬)', amount: 15000, type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', note: '115/8 共同小雞', icon: 'fa-heart text-rose-500', border: 'border-teal-200 hover:border-teal-400' }
 ];
@@ -42,7 +42,7 @@ class XuanMuFinanceApp {
   constructor() {
     this.appTitle = localStorage.getItem('xm_app_title') || '小萌馬金庫';
     
-    // Always force sort transactions date descending upon loading
+    // Load and clean transactions
     this.transactions = (JSON.parse(localStorage.getItem('xm_transactions')) || DEFAULT_TRANSACTIONS)
       .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11');
 
@@ -53,8 +53,6 @@ class XuanMuFinanceApp {
     if (!this.transactions.some(t => t.id === 'tx-12' || (t.note && t.note.includes('織物清洗機')))) {
       this.transactions.push({ id: 'tx-12', date: '2026-08-05', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒大額設備/用品', fund: '宣穆基金', amount: 7539, note: '8/5 購買織物清洗機 (育兒開銷)' });
     }
-
-    this.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
 
     this.accounts = JSON.parse(localStorage.getItem('xm_accounts')) || DEFAULT_ACCOUNTS;
     this.quickPresets = JSON.parse(localStorage.getItem('xm_quick_presets')) || DEFAULT_QUICK_PRESETS;
@@ -68,11 +66,18 @@ class XuanMuFinanceApp {
 
     this.quickPresets = DEFAULT_QUICK_PRESETS;
 
+    // Normalize accounts and fix self-target wallet transfers
     this.transactions = this.transactions.map(tx => {
       let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
       let tgt = this.normalizeAccountName(tx.targetAccount);
+      
+      // Fix bug: if wallet expense set targetAccount to itself, change targetAccount to merchant
+      if (tx.type === '支出' && (src === '共同小雞錢包' || src === 'LINE 阿萌') && (tgt === src || tgt === '共同小雞錢包' || tgt === 'LINE 阿萌')) {
+        tgt = '商家/用品店';
+      }
+
       return { ...tx, sourceAccount: src, targetAccount: tgt };
-    });
+    }).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('sync')) {
@@ -231,6 +236,11 @@ class XuanMuFinanceApp {
             .map(tx => {
               let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
               let tgt = this.normalizeAccountName(tx.targetAccount);
+              
+              if (tx.type === '支出' && (src === '共同小雞錢包' || src === 'LINE 阿萌') && (tgt === src || tgt === '共同小雞錢包' || tgt === 'LINE 阿萌')) {
+                tgt = '商家/用品店';
+              }
+
               return { ...tx, sourceAccount: src, targetAccount: tgt };
             })
             .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
@@ -281,7 +291,7 @@ class XuanMuFinanceApp {
 
       const isFromWallet = src.includes('錢包') || src.includes('阿萌');
 
-      // 1. Fund Totals (Exclude wallet micro-expenses from fund deduction to prevent double counting!)
+      // 1. Fund Totals (Exclude wallet micro-expenses from fund deduction)
       if (tx.type === '收入') {
         if (tx.fund === '宣穆戶頭') xuanmuAccount += amt;
         else if (tx.fund === '宣穆基金') xuanmuFund += amt;
@@ -302,9 +312,10 @@ class XuanMuFinanceApp {
       } else if (tx.type === '支出') {
         accountBalances[src] = (accountBalances[src] || 0) - amt;
 
-        if (tgt === '共同小雞錢包') {
+        // ONLY count topUp if money comes from OUTSIDE the wallet (e.g. from bank accounts)!
+        if (tgt === '共同小雞錢包' && src !== '共同小雞錢包') {
           walletStats['共同小雞錢包'].topUp += amt;
-        } else if (tgt === 'LINE 阿萌') {
+        } else if (tgt === 'LINE 阿萌' && src !== 'LINE 阿萌') {
           walletStats['LINE 阿萌'].topUp += amt;
         }
 
@@ -317,9 +328,9 @@ class XuanMuFinanceApp {
         accountBalances[src] = (accountBalances[src] || 0) - amt;
         accountBalances[tgt] = (accountBalances[tgt] || 0) + amt;
 
-        if (tgt === '共同小雞錢包') {
+        if (tgt === '共同小雞錢包' && src !== '共同小雞錢包') {
           walletStats['共同小雞錢包'].topUp += amt;
-        } else if (tgt === 'LINE 阿萌') {
+        } else if (tgt === 'LINE 阿萌' && src !== 'LINE 阿萌') {
           walletStats['LINE 阿萌'].topUp += amt;
         }
       }
@@ -407,8 +418,9 @@ class XuanMuFinanceApp {
 
     const today = new Date().toISOString().split('T')[0];
 
-    // Mode 1: Chick Wallet Prompt
+    // Mode 1: Chick Wallet Prompt with Date & Note Prompts
     if (qp.mode === 'prompt-chick') {
+      const dateInput = prompt('請輸入/確認扣款日期 (格式：YYYY-MM-DD)：', today) || today;
       const inputAmtStr = prompt('🐥 請輸入【小雞錢包】要扣抵的花用金額 (元)：', '500');
       if (!inputAmtStr) return;
       const amt = Number(inputAmtStr.trim());
@@ -418,10 +430,10 @@ class XuanMuFinanceApp {
 
       const newTx = {
         id: 'tx-' + Date.now(),
-        date: today,
+        date: dateInput,
         type: '支出',
         sourceAccount: '共同小雞錢包',
-        targetAccount: '商家/外送',
+        targetAccount: '商家/用品店',
         category: '每月開銷',
         fund: '宣穆基金',
         amount: amt,
@@ -429,14 +441,16 @@ class XuanMuFinanceApp {
       };
 
       this.transactions.unshift(newTx);
+      this.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
       this.render();
       this.saveState();
-      alert(`已成功記錄小雞花用 $${amt.toLocaleString()} 元！共同小雞錢包剩餘額度已自動扣減。`);
+      alert(`已成功記錄 ${dateInput} 小雞花用 $${amt.toLocaleString()} 元！共同小雞錢包剩餘額度已自動扣減。`);
       return;
     }
 
-    // Mode 2: AMeng Wallet Prompt
+    // Mode 2: AMeng Wallet Prompt with Date & Note Prompts
     if (qp.mode === 'prompt-among') {
+      const dateInput = prompt('請輸入/確認扣款日期 (格式：YYYY-MM-DD)：', today) || today;
       const inputAmtStr = prompt('💬 請輸入【LINE 阿萌錢包】要扣抵的花用金額 (元)：', '10321');
       if (!inputAmtStr) return;
       const amt = Number(inputAmtStr.trim());
@@ -446,7 +460,7 @@ class XuanMuFinanceApp {
 
       const newTx = {
         id: 'tx-' + Date.now(),
-        date: today,
+        date: dateInput,
         type: '支出',
         sourceAccount: 'LINE 阿萌',
         targetAccount: '商家/用品店',
@@ -457,20 +471,21 @@ class XuanMuFinanceApp {
       };
 
       this.transactions.unshift(newTx);
+      this.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
       this.render();
       this.saveState();
-      alert(`已成功記錄阿萌花用 $${amt.toLocaleString()} 元！LINE 阿萌錢包剩餘額度已自動扣減。`);
+      alert(`已成功記錄 ${dateInput} 阿萌花用 $${amt.toLocaleString()} 元！LINE 阿萌錢包剩餘額度已自動扣減。`);
       return;
     }
 
     // Mode 3: Single Direct Expense from XuanMu Fund
     if (qp.mode === 'prompt-single') {
+      const dateInput = prompt('請輸入/確認扣款日期 (格式：YYYY-MM-DD)：', today) || today;
       const inputAmtStr = prompt('🛍️ 請輸入【宣穆基金單筆育兒支出】金額 (元)：', '7539');
       if (!inputAmtStr) return;
       const amt = Number(inputAmtStr.trim());
       if (isNaN(amt) || amt <= 0) return alert('請輸入有效的金額！');
 
-      const dateInput = prompt('請確認/修改日期 (格式：YYYY-MM-DD)：', today) || today;
       const note = prompt('請輸入購買物品說明備註 (例：8/5 購買織物清洗機)：', '購買織物清洗機 (育兒開銷)') || '育兒單筆開銷';
 
       const newTx = {
@@ -486,9 +501,10 @@ class XuanMuFinanceApp {
       };
 
       this.transactions.unshift(newTx);
+      this.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
       this.render();
       this.saveState();
-      alert(`已成功記錄宣穆基金單筆支出 $${amt.toLocaleString()} 元 (${note})！宣穆基金與 8 月預算已同步扣減。`);
+      alert(`已成功記錄 ${dateInput} 宣穆基金單筆支出 $${amt.toLocaleString()} 元 (${note})！宣穆基金與 8 月預算已同步扣減。`);
       return;
     }
 
@@ -612,7 +628,7 @@ class XuanMuFinanceApp {
 
     const currentMonthPrefix = '2026-08';
     
-    // August Fund Spending: ONLY count transfers to wallets or direct fund purchases, NOT micro-expenses FROM wallets!
+    // August Fund Spending: ONLY count transfers to wallets or direct fund purchases!
     const augustSpent = this.transactions
       .filter(tx => tx.fund === '宣穆基金' && tx.type === '支出' && tx.date.startsWith(currentMonthPrefix) && !tx.sourceAccount.includes('錢包') && !tx.sourceAccount.includes('阿萌'))
       .reduce((sum, tx) => sum + Number(tx.amount), 0);
@@ -642,7 +658,6 @@ class XuanMuFinanceApp {
     if (mode === 'monthly') {
       title.innerHTML = `<i class="fa-solid fa-calendar-day text-teal-600"></i> 2026/08 八月份宣穆基金撥款與支出明細`;
       
-      // EXCLUDE wallet micro-expenses to prevent double counting!
       items = this.transactions.filter(tx => 
         tx.fund === '宣穆基金' && 
         tx.type === '支出' && 
@@ -656,7 +671,6 @@ class XuanMuFinanceApp {
     } else {
       title.innerHTML = `<i class="fa-solid fa-shield-halved text-amber-500"></i> 萌爸 36 萬基金歷次開銷與撥款明細`;
 
-      // EXCLUDE wallet micro-expenses to prevent double counting!
       items = this.transactions.filter(tx => 
         tx.fund === '宣穆基金' && 
         tx.type === '支出' && 
@@ -668,7 +682,6 @@ class XuanMuFinanceApp {
       summary.innerHTML = `萌爸基金歷次累積撥出：<span class="text-amber-700 font-black text-sm">$${total.toLocaleString()}</span> 元 (剩餘基金 $${(360000 - total).toLocaleString()} 元)`;
     }
 
-    // Sort items date descending
     items.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
 
     if (items.length === 0) {
@@ -708,7 +721,7 @@ class XuanMuFinanceApp {
       let subInfo = '';
 
       if (normName === '共同小雞錢包') {
-        const stats = walletStats['共同小雞錢包'] || { topUp: 15000, spent: 0 };
+        const stats = walletStats['共同小雞錢包'] || { topUp: 30000, spent: 6925 };
         const remaining = (stats.topUp - stats.spent);
         amountStr = `$${remaining.toLocaleString()}`;
         amountLabel = '錢包目前剩餘額度 (點擊看明細)';
@@ -801,7 +814,7 @@ class XuanMuFinanceApp {
         let colorClass = '';
         let isPositive = false;
 
-        if (tgt === normName) {
+        if (tgt === normName && src !== normName) {
           isPositive = true;
           totalIn += amt;
           flowDir = `存入 / 轉入 (來源: ${src})`;
@@ -1165,12 +1178,19 @@ class XuanMuFinanceApp {
     e.preventDefault();
 
     const id = this.txId.value || 'tx-' + Date.now();
+    let src = this.normalizeAccountName(this.txSourceAccount.value, this.currentTxType === '收入');
+    let tgt = this.normalizeAccountName(this.txTargetAccount.value);
+
+    if (this.currentTxType === '支出' && (src === '共同小雞錢包' || src === 'LINE 阿萌') && (tgt === src || tgt === '共同小雞錢包' || tgt === 'LINE 阿萌')) {
+      tgt = '商家/用品店';
+    }
+
     const record = {
       id,
       date: this.txDate.value,
       type: this.currentTxType,
-      sourceAccount: this.normalizeAccountName(this.txSourceAccount.value, this.currentTxType === '收入'),
-      targetAccount: this.normalizeAccountName(this.txTargetAccount.value),
+      sourceAccount: src,
+      targetAccount: tgt,
       category: this.txCategory.value,
       fund: this.txFund.value,
       amount: Number(this.txAmount.value),
