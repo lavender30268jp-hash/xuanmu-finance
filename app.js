@@ -1,6 +1,10 @@
 /**
- * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Light Cozy Professional Edition)
- * Fixed: Force merge & sync latest August transactions (8/12 - 8/20) even if browser localStorage has old cache.
+ * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Ultra-Intuitive Redesign Edition)
+ * Highlights:
+ * 1. 🏦 新增【宣穆永豐個人戶 (投資戶)】（李宣穆名下獨立永豐個人戶，專作投資積蓄使用）。
+ * 2. 徹底摒棄『付款管道』與『受款對象』雙重複雜下拉選單！
+ * 3. 簡化為 3 大情境卡片：【🛍️ 記開銷/阿彤代付】、【📥 記收入/津貼】、【🔄 撥款與還錢給阿彤】。
+ * 4. 點選視覺化大標籤按鈕，填寫金額與項目名稱，系統在背景自動完成所有複式記帳邏輯！
  */
 
 const DEFAULT_TRANSACTIONS = [
@@ -29,6 +33,7 @@ const DEFAULT_ACCOUNTS = [
   { id: 'acc-post-phys', name: '郵局 (實體存簿)', group: '存款帳戶', icon: 'fa-envelope-open-text text-emerald-500', badge: '實體存簿', note: '政府補助生育給付/育兒津貼專款' },
   { id: 'acc-post-digi', name: '郵局數位帳戶', group: '存款帳戶', icon: 'fa-mobile-screen-button text-cyan-500', badge: '數位帳戶', note: '存放萌爸 18 萬宣穆基金' },
   { id: 'acc-sinopac', name: '永豐大戶 (DAWHO)', group: '存款帳戶', icon: 'fa-building-columns text-teal-500', badge: '主要轉入帳戶', note: '存放萌爸 18 萬宣穆基金' },
+  { id: 'acc-sinopac-xuanmu', name: '宣穆永豐個人戶 (投資戶)', group: '投資帳戶', icon: 'fa-chart-line text-purple-500', badge: '宣穆個人投資戶', note: '李宣穆個人開立之永豐銀行投資帳戶' },
   { id: 'acc-cash', name: '育兒實體現金', group: '實體現金', icon: 'fa-money-bill-wave text-amber-500', badge: '手邊現金/紅包', note: '收到的親友紅包與現金資助' },
   { id: 'acc-joint', name: '共同小雞錢包', group: '開銷錢包', icon: 'fa-heart text-rose-500', badge: '日常開銷錢包', note: '買飯、尿布、育兒用品' },
   { id: 'acc-line-among', name: 'LINE 阿萌', group: '開銷錢包', icon: 'fa-comment text-emerald-500', badge: '阿萌開銷錢包', note: '阿萌買兒子花費與共同餐費' },
@@ -50,7 +55,7 @@ class XuanMuFinanceApp {
     this.transactions = (JSON.parse(localStorage.getItem('xm_transactions')) || DEFAULT_TRANSACTIONS)
       .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11');
 
-    // Force merge any missing August transactions (8/12, 8/17, 8/18, 8/19, 8/20) into local dataset
+    // Force merge any missing August transactions
     DEFAULT_TRANSACTIONS.forEach(dtx => {
       const exists = this.transactions.some(t => t.id === dtx.id || (t.date === dtx.date && Number(t.amount) === dtx.amount && t.note === dtx.note));
       if (!exists) {
@@ -59,16 +64,21 @@ class XuanMuFinanceApp {
     });
 
     this.accounts = JSON.parse(localStorage.getItem('xm_accounts')) || DEFAULT_ACCOUNTS;
+    
+    if (!this.accounts.some(a => a.name === '宣穆永豐個人戶 (投資戶)')) {
+      this.accounts.push({ id: 'acc-sinopac-xuanmu', name: '宣穆永豐個人戶 (投資戶)', group: '投資帳戶', icon: 'fa-chart-line text-purple-500', badge: '宣穆個人投資戶', note: '李宣穆個人開立之永豐銀行投資帳戶' });
+    }
+
+    if (!this.accounts.some(a => a.name === '💳 阿彤代付')) {
+      this.accounts.push({ id: 'acc-atong', name: '💳 阿彤代付', group: '代付墊款', icon: 'fa-credit-card text-purple-500', badge: '阿彤墊款專區', note: '阿彤先用自己的錢幫宣穆付費，隨時可一鍵歸還還款' });
+    }
+
     this.quickPresets = JSON.parse(localStorage.getItem('xm_quick_presets')) || DEFAULT_QUICK_PRESETS;
     this.subsidyRule = localStorage.getItem('xm_subsidy_rule') || 'child';
     this.syncRoomKey = localStorage.getItem('xm_sync_room') || 'hughtong-2026';
     this.lastUpdatedAt = localStorage.getItem('xm_last_updated_at') || '';
 
-    if (!this.accounts.some(a => a.id === 'acc-atong' || a.name === '💳 阿彤代付')) {
-      this.accounts.push({ id: 'acc-atong', name: '💳 阿彤代付', group: '代付墊款', icon: 'fa-credit-card text-purple-500', badge: '阿彤墊款專區', note: '阿彤先用自己的錢幫宣穆付費，隨時可一鍵歸還還款' });
-    }
-
-    // Normalize accounts
+    // Normalize account names
     this.transactions = this.transactions.map(tx => {
       let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
       let tgt = this.normalizeAccountName(tx.targetAccount);
@@ -109,6 +119,9 @@ class XuanMuFinanceApp {
     const s = rawName.trim();
     if (s.includes('阿彤') || s.includes('代付') || s.includes('墊款')) {
       return '💳 阿彤代付';
+    }
+    if (s.includes('宣穆永豐') || s.includes('投資戶')) {
+      return '宣穆永豐個人戶 (投資戶)';
     }
     if (s.includes('郵局') && (s.includes('數') || s.includes('數位'))) {
       return '郵局數位帳戶';
@@ -239,7 +252,6 @@ class XuanMuFinanceApp {
           
           if (res.appTitle) this.appTitle = res.appTitle;
 
-          // Merge cloud transactions with local transactions
           const map = new Map();
           this.transactions.forEach(t => map.set(t.id, t));
           res.transactions.forEach(t => map.set(t.id, t));
@@ -284,6 +296,7 @@ class XuanMuFinanceApp {
       '郵局 (實體存簿)': 0,
       '郵局數位帳戶': 0,
       '永豐大戶 (DAWHO)': 0,
+      '宣穆永豐個人戶 (投資戶)': 0,
       '育兒實體現金': 0,
       '共同小雞錢包': 0,
       'LINE 阿萌': 0,
@@ -371,6 +384,7 @@ class XuanMuFinanceApp {
     const totalAssets = (accountBalances['郵局 (實體存簿)'] || 0) + 
                         (accountBalances['郵局數位帳戶'] || 0) + 
                         (accountBalances['永豐大戶 (DAWHO)'] || 0) +
+                        (accountBalances['宣穆永豐個人戶 (投資戶)'] || 0) +
                         (accountBalances['育兒實體現金'] || 0);
 
     return {
@@ -395,7 +409,7 @@ class XuanMuFinanceApp {
     document.getElementById('card-total-assets').textContent = `$${data.totalAssets.toLocaleString()}`;
     document.getElementById('card-xuanmu-account').textContent = `$${data.xuanmuAccount.toLocaleString()}`;
     document.getElementById('card-xuanmu-fund').textContent = `$${data.xuanmuFund.toLocaleString()}`;
-    document.getElementById('card-xuanmu-invest').textContent = `$${(data.xuanmuInvest + data.otherFund).toLocaleString()}`;
+    document.getElementById('card-xuanmu-invest').textContent = `$${(data.xuanmuInvest + data.otherFund + (data.accountBalances['宣穆永豐個人戶 (投資戶)'] || 0)).toLocaleString()}`;
     document.getElementById('badge-total-transactions').textContent = `${this.transactions.length} 筆紀錄 ➔`;
 
     this.renderQuickPresets();
@@ -569,6 +583,7 @@ class XuanMuFinanceApp {
       { name: '共同小雞錢包', val: '共同小雞錢包' },
       { name: 'LINE 阿萌', val: 'LINE 阿萌' },
       { name: '永豐大戶 (DAWHO)', val: '永豐大戶 (DAWHO)' },
+      { name: '宣穆永豐個人戶 (投資戶)', val: '宣穆永豐個人戶 (投資戶)' },
       { name: '郵局數位帳戶', val: '郵局數位帳戶' },
       { name: '郵局 (實體存簿)', val: '郵局 (實體存簿)' },
       { name: '育兒實體現金', val: '育兒實體現金' },
@@ -713,7 +728,7 @@ class XuanMuFinanceApp {
 
     this.render();
     this.saveState();
-    alert('所有快捷按鈕設定（收支類型、來源去向帳戶、資金歸屬與彈窗模式）已成功儲存！');
+    alert('所有快捷按鈕設定已成功儲存！');
     this.closeModal(this.modalQuickPresets);
   }
 
@@ -839,6 +854,11 @@ class XuanMuFinanceApp {
         amountStr = `$${dueAmt.toLocaleString()}`;
         amountLabel = dueAmt > 0 ? '阿彤待歸還墊款 (點擊看明細/歸還)' : '代付款已清空 (無待還款)';
         subInfo = `阿彤累積墊付 $${atongStats.spent.toLocaleString()} ｜ 已歸還還款 $${atongStats.reimbursed.toLocaleString()}`;
+      } else if (normName === '宣穆永豐個人戶 (投資戶)') {
+        const bal = balances['宣穆永豐個人戶 (投資戶)'] || 0;
+        amountStr = `$${bal.toLocaleString()}`;
+        amountLabel = '宣穆個人投資積蓄帳戶 (點擊看明細)';
+        subInfo = '宣穆個人開立之永豐獨立戶頭，作為未來股票/ETF與積蓄專用';
       } else if (normName === '共同小雞錢包') {
         const stats = walletStats['共同小雞錢包'] || { topUp: 30000, spent: 6925 };
         const remaining = (stats.topUp - stats.spent);
@@ -867,12 +887,14 @@ class XuanMuFinanceApp {
       cardEl.onclick = () => this.openAccountDetailsModal(acc.name);
       
       const badgeStyle = normName === '💳 阿彤代付' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+                         (normName.includes('投資') ? 'bg-indigo-100 text-indigo-800 border-indigo-200' :
                          (normName.includes('錢包') || normName.includes('阿萌') ? 'bg-rose-100 text-rose-800 border-rose-200' : 
-                         (normName.includes('現金') ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-slate-100 text-slate-700 border-slate-200'));
+                         (normName.includes('現金') ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-slate-100 text-slate-700 border-slate-200')));
 
       const amountColorClass = normName === '💳 阿彤代付' ? 'text-purple-600' :
+                                (normName.includes('投資') ? 'text-indigo-600' :
                                 (normName.includes('錢包') || normName.includes('阿萌') ? 'text-rose-600' : 
-                                (normName.includes('現金') ? 'text-amber-600' : 'text-slate-800'));
+                                (normName.includes('現金') ? 'text-amber-600' : 'text-slate-800')));
 
       cardEl.innerHTML = `
         <div>
@@ -1030,10 +1052,10 @@ class XuanMuFinanceApp {
       filteredTxs = this.transactions.filter(t => t.fund === '宣穆戶頭');
       balEl.textContent = `$${data.xuanmuAccount.toLocaleString()}`;
     } else if (fundType === '宣穆投資') {
-      displayTitle = '宣穆投資與其他 - 萌媽資助與投資明細';
+      displayTitle = '宣穆投資與其他 - 萌媽資助與宣穆永豐投資戶明細';
       iconClass = 'fa-chart-line text-purple-500';
-      filteredTxs = this.transactions.filter(t => t.fund === '宣穆投資' || t.fund === '其他');
-      balEl.textContent = `$${(data.xuanmuInvest + data.otherFund).toLocaleString()}`;
+      filteredTxs = this.transactions.filter(t => t.fund === '宣穆投資' || t.fund === '其他' || t.sourceAccount.includes('投資戶') || t.targetAccount.includes('投資戶'));
+      balEl.textContent = `$${(data.xuanmuInvest + data.otherFund + (data.accountBalances['宣穆永豐個人戶 (投資戶)'] || 0)).toLocaleString()}`;
     }
 
     title.innerHTML = `<i class="fa-solid ${iconClass}"></i> ${displayTitle}`;
@@ -1113,12 +1135,14 @@ class XuanMuFinanceApp {
       const ctxPie = pieCanvas.getContext('2d');
       if (this.pieChart) this.pieChart.destroy();
 
+      const investBal = data.xuanmuInvest + data.otherFund + (data.accountBalances['宣穆永豐個人戶 (投資戶)'] || 0);
+
       this.pieChart = new Chart(ctxPie, {
         type: 'doughnut',
         data: {
-          labels: ['宣穆戶頭 (積蓄)', '宣穆基金 (營運)', '宣穆投資/其他'],
+          labels: ['宣穆戶頭 (積蓄)', '宣穆基金 (營運)', '宣穆投資 (宣穆永豐戶/其他)'],
           datasets: [{
-            data: [data.xuanmuAccount, data.xuanmuFund, data.xuanmuInvest + data.otherFund],
+            data: [data.xuanmuAccount, data.xuanmuFund, investBal],
             backgroundColor: ['#10B981', '#14B8A6', '#805AD5'],
             borderColor: '#FFFFFF',
             borderWidth: 3
@@ -1140,16 +1164,17 @@ class XuanMuFinanceApp {
       const postPhys = data.accountBalances['郵局 (實體存簿)'] || 130000;
       const postDigi = data.accountBalances['郵局數位帳戶'] || 170000;
       const sinoPac = data.accountBalances['永豐大戶 (DAWHO)'] || 137867;
+      const sinoPacXuanMu = data.accountBalances['宣穆永豐個人戶 (投資戶)'] || 0;
       const cashBal = data.accountBalances['育兒實體現金'] || 20000;
 
       this.barChart = new Chart(ctxBar, {
         type: 'bar',
         data: {
-          labels: ['郵局實體存簿', '郵局數位帳戶', '永豐大戶 (DAWHO)', '育兒實體現金'],
+          labels: ['郵局實體', '郵局數位', '永豐大戶', '宣穆永豐投資戶', '實體現金'],
           datasets: [{
             label: '現存資產 (NT$)',
-            data: [postPhys, postDigi, sinoPac, cashBal],
-            backgroundColor: ['#10B981', '#06B6D4', '#14B8A6', '#F59E0B'],
+            data: [postPhys, postDigi, sinoPac, sinoPacXuanMu, cashBal],
+            backgroundColor: ['#10B981', '#06B6D4', '#14B8A6', '#805AD5', '#F59E0B'],
             borderRadius: 10
           }]
         },
@@ -1326,12 +1351,13 @@ class XuanMuFinanceApp {
 
     const opts = `
       <option value="💳 阿彤代付">💳 阿彤代付 (先拿阿彤的錢墊付)</option>
-      <option value="共同小雞錢包">共同小雞錢包</option>
-      <option value="LINE 阿萌">LINE 阿萌</option>
-      <option value="永豐大戶 (DAWHO)">永豐大戶 (DAWHO)</option>
-      <option value="郵局數位帳戶">郵局數位帳戶</option>
-      <option value="郵局 (實體存簿)">郵局 (實體存簿)</option>
-      <option value="育兒實體現金">育兒實體現金 (手邊現金/紅包)</option>
+      <option value="共同小雞錢包">🐥 共同小雞錢包</option>
+      <option value="LINE 阿萌">💬 LINE 阿萌</option>
+      <option value="永豐大戶 (DAWHO)">🏦 永豐大戶 (DAWHO)</option>
+      <option value="宣穆永豐個人戶 (投資戶)">📈 宣穆永豐個人戶 (投資專用)</option>
+      <option value="郵局數位帳戶">📱 郵局數位帳戶</option>
+      <option value="郵局 (實體存簿)">✉️ 郵局 (實體存簿)</option>
+      <option value="育兒實體現金">💵 育兒實體現金 (手邊現金/紅包)</option>
       <option value="商家/用品店">商家 / 用品店 / 外送</option>
       <option value="家電/育兒設備店">家電 / 育兒設備店</option>
       <option value="政府補助/親友">政府補助 / 親友紅包</option>
@@ -1354,10 +1380,14 @@ class XuanMuFinanceApp {
         this.txCategory.value = '每月開銷';
       }
     } else if (type === '收入') {
-      if (src === '政府補助/親友' || src.includes('補助')) {
+      if (src === '政府補助/親友' || src.includes('補助') || src.includes('郵局')) {
         this.txTargetAccount.value = '郵局 (實體存簿)';
         this.txFund.value = '宣穆戶頭';
         this.txCategory.value = '固定收入';
+      } else if (src.includes('宣穆永豐') || src.includes('投資')) {
+        this.txTargetAccount.value = '宣穆永豐個人戶 (投資戶)';
+        this.txFund.value = '宣穆投資';
+        this.txCategory.value = '投資理財';
       } else if (src.includes('萌媽')) {
         this.txTargetAccount.value = '育兒實體現金';
         this.txFund.value = '其他';
@@ -1376,6 +1406,10 @@ class XuanMuFinanceApp {
         this.txTargetAccount.value = 'LINE 阿萌';
         this.txCategory.value = '轉帳';
         this.txFund.value = '宣穆基金';
+      } else if (src.includes('郵局')) {
+        this.txTargetAccount.value = '宣穆永豐個人戶 (投資戶)';
+        this.txCategory.value = '轉帳';
+        this.txFund.value = '宣穆投資';
       }
     }
   }
@@ -1395,14 +1429,14 @@ class XuanMuFinanceApp {
     const lblSrc = document.getElementById('lbl-source-account');
     const lblTgt = document.getElementById('lbl-target-account');
     if (type === '收入') {
-      lblSrc.textContent = '收入來源管道 (例: 親友紅包/政府補助/萌媽資助)';
-      lblTgt.textContent = '存入資產帳戶 (例: 郵局存簿/育兒實體現金)';
+      lblSrc.textContent = '入帳資產/管道 (例: 郵局/宣穆永豐投資戶/現金)';
+      lblTgt.textContent = '存入資產帳戶';
     } else if (type === '支出') {
-      lblSrc.textContent = '誰出的錢 / 付款管道（系統自動設定分類）';
-      lblTgt.textContent = '受款對象/開銷店家 (例: 商家/用品店)';
+      lblSrc.textContent = '誰出的錢 / 付款管道 (例: 💳阿彤代付/郵局/永豐/小雞)';
+      lblTgt.textContent = '受款對象/開銷店家';
     } else {
-      lblSrc.textContent = '轉出/撥款帳戶 (例: 永豐大戶/郵局數位)';
-      lblTgt.textContent = '轉入/接收帳戶 (例: 💳阿彤代付/小雞錢包)';
+      lblSrc.textContent = '轉出/劃撥帳戶 (例: 永豐大戶/郵局數位)';
+      lblTgt.textContent = '轉入/接收帳戶 (例: 💳阿彤代付/宣穆永豐投資戶/小雞錢包)';
     }
 
     this.autoInferFormDefaults();
@@ -1484,9 +1518,9 @@ class XuanMuFinanceApp {
   }
 
   promptAddAccount() {
-    const name = prompt('請輸入新帳戶名稱（例：LINE Bank 友感帳戶、國泰世華）：');
+    const name = prompt('請輸入新帳戶名稱（例：宣穆永豐個人戶）：');
     if (!name) return;
-    const badge = prompt('請輸入帳戶標籤（例：數位帳戶、信用卡）：', '存款帳戶') || '存款帳戶';
+    const badge = prompt('請輸入帳戶標籤（例：投資帳戶、數位帳戶）：', '存款帳戶') || '存款帳戶';
     const note = prompt('請輸入帳戶說明備註：', '') || '';
 
     const newAcc = {
