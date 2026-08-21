@@ -160,6 +160,7 @@ class XuanMuFinanceApp {
     this.txId = document.getElementById('tx-id');
     this.txDate = document.getElementById('tx-date');
     this.txAmount = document.getElementById('tx-amount');
+    this.txFee = document.getElementById('tx-fee');
     this.txSourceAccount = document.getElementById('tx-source-account');
     this.txTargetAccount = document.getElementById('tx-target-account');
     this.txCategory = document.getElementById('tx-category');
@@ -1445,6 +1446,7 @@ class XuanMuFinanceApp {
   openAddModal() {
     this.txId.value = '';
     this.formTx.reset();
+    if (this.txFee) this.txFee.value = '';
     const today = new Date().toISOString().split('T')[0];
     this.txDate.value = today;
     this.setModalTxType('支出');
@@ -1459,6 +1461,7 @@ class XuanMuFinanceApp {
     this.txId.value = tx.id;
     this.txDate.value = tx.date;
     this.txAmount.value = tx.amount;
+    if (this.txFee) this.txFee.value = '';
     this.txSourceAccount.value = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
     this.txTargetAccount.value = this.normalizeAccountName(tx.targetAccount);
     this.txCategory.value = tx.category;
@@ -1484,6 +1487,7 @@ class XuanMuFinanceApp {
     const id = this.txId.value || 'tx-' + Date.now();
     let src = this.normalizeAccountName(this.txSourceAccount.value, this.currentTxType === '收入');
     let tgt = this.normalizeAccountName(this.txTargetAccount.value);
+    const fee = Number(this.txFee?.value || 0);
 
     if (this.currentTxType === '支出' && src === '育兒實體現金' && tgt === '育兒實體現金') {
       tgt = '商家/用品店';
@@ -1510,6 +1514,22 @@ class XuanMuFinanceApp {
       this.transactions[idx] = record;
     } else {
       this.transactions.unshift(record);
+    }
+
+    // Auto generate $5 handling fee transaction if fee > 0
+    if (fee > 0) {
+      const feeRecord = {
+        id: 'tx-fee-' + Date.now(),
+        date: this.txDate.value,
+        type: '支出',
+        sourceAccount: src,
+        targetAccount: '金融機構/手續費',
+        category: '每月開銷',
+        fund: '宣穆基金',
+        amount: fee,
+        note: `跨行/提款手續費 $${fee} (${this.txNote.value || '手續費'})`
+      };
+      this.transactions.unshift(feeRecord);
     }
 
     this.closeModal(this.modalTx);
