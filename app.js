@@ -1095,7 +1095,39 @@ class XuanMuFinanceApp {
       document.getElementById('transactions-section').scrollIntoView({ behavior: 'smooth' });
     };
 
+    const btnAddTx = document.getElementById('btn-add-account-tx');
+    const btnTransferTx = document.getElementById('btn-transfer-account-tx');
+
+    if (btnAddTx) {
+      btnAddTx.onclick = () => this.openAddModalForAccount(normName, '支出');
+    }
+    if (btnTransferTx) {
+      btnTransferTx.onclick = () => this.openAddModalForAccount(normName, '轉帳');
+    }
+
     modal.classList.remove('hidden');
+  }
+
+  openAddModalForAccount(rawAccName, txType = '支出') {
+    this.closeModal(this.modalAccountDetails);
+    this.openAddModal();
+    
+    const normName = this.normalizeAccountName(rawAccName, txType === '收入');
+    this.txSourceAccount.value = normName;
+    this.setModalTxType(txType);
+
+    if (txType === '轉帳') {
+      if (normName === '育兒實體現金') {
+        this.txTargetAccount.value = '永豐大戶 (DAWHO)';
+        this.txNote.value = '實體現金存入永豐大戶戶頭';
+      } else if (normName === '永豐大戶 (DAWHO)') {
+        this.txTargetAccount.value = '共同小雞錢包';
+        this.txNote.value = '永豐大戶撥款至共同小雞錢包';
+      } else if (normName === '郵局 (實體存簿)' || normName === '郵局數位帳戶') {
+        this.txTargetAccount.value = '宣穆永豐個人戶 (投資戶)';
+        this.txNote.value = '郵局轉存至宣穆永豐投資專戶';
+      }
+    }
   }
 
   openOverviewFundDetailsModal(fundType) {
