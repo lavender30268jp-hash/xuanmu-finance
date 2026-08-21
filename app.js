@@ -1057,8 +1057,11 @@ class XuanMuFinanceApp {
             <div class="font-black text-sm ${colorClass}">
               ${isPositive ? '+' : '-'}$${amt.toLocaleString()}
             </div>
-            <button onclick="app.editTransaction('${t.id}'); app.closeModal(document.getElementById('modal-account-details'))" class="text-[10px] text-amber-600 font-bold hover:underline">
+            <button onclick="app.editTransaction('${t.id}'); app.closeModal(document.getElementById('modal-account-details'))" class="text-[10px] text-amber-600 font-bold hover:underline mr-2">
               <i class="fa-solid fa-pen"></i> 編輯
+            </button>
+            <button onclick="app.deleteTransactionFromModal('${t.id}')" class="text-[10px] text-rose-600 font-bold hover:underline">
+              <i class="fa-solid fa-trash-can"></i> 刪除
             </button>
           </div>
         `;
@@ -1100,6 +1103,26 @@ class XuanMuFinanceApp {
     }
 
     modal.classList.remove('hidden');
+  }
+
+  deleteTransactionFromModal(id) {
+    if (confirm('確定要刪除此筆交易紀錄嗎？刪除後將永久生效並同步所有裝置。')) {
+      const tx = this.transactions.find(t => t.id === id);
+      let currentAccount = null;
+      if (tx) {
+        currentAccount = tx.sourceAccount || tx.targetAccount;
+      }
+
+      this.transactions = this.transactions.filter(t => t.id !== id);
+      this.render();
+      this.saveState();
+
+      if (currentAccount) {
+        this.openAccountDetailsModal(currentAccount);
+      } else {
+        this.closeModal(this.modalAccountDetails);
+      }
+    }
   }
 
   openAddModalForAccount(rawAccName, txType = '支出') {
@@ -1200,8 +1223,11 @@ class XuanMuFinanceApp {
             <div class="font-black text-sm ${colorClass}">
               ${isPositive ? '+' : '-'}$${amt.toLocaleString()}
             </div>
-            <button onclick="app.editTransaction('${t.id}'); app.closeModal(document.getElementById('modal-account-details'))" class="text-[10px] text-amber-600 font-bold hover:underline">
+            <button onclick="app.editTransaction('${t.id}'); app.closeModal(document.getElementById('modal-account-details'))" class="text-[10px] text-amber-600 font-bold hover:underline mr-2">
               <i class="fa-solid fa-pen"></i> 編輯
+            </button>
+            <button onclick="app.deleteTransactionFromModal('${t.id}')" class="text-[10px] text-rose-600 font-bold hover:underline">
+              <i class="fa-solid fa-trash-can"></i> 刪除
             </button>
           </div>
         `;
