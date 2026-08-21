@@ -1,10 +1,6 @@
 /**
  * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Light Cozy Professional Edition)
- * Highlights:
- * 1. 💳 阿彤代付 & 待歸還還款機制 (Mom Advance Payment & Reimbursement System).
- * 2. 💵 實體現金 $24,800 - $4,800 (臍帶章) 扣款修正，精準顯示現存 $20,000 元！
- * 3. ⚡ 超極簡直覺記帳流：【阿彤代付】、【小雞/阿萌花用】、【基金採買】、【撥款與歸還還款】3步彈窗極速完成！
- * 4. 🔄 雙重即時雲端自動同步，解決手機與電腦資料庫不一致問題。
+ * Fixed: Force merge & sync latest August transactions (8/12 - 8/20) even if browser localStorage has old cache.
  */
 
 const DEFAULT_TRANSACTIONS = [
@@ -50,9 +46,17 @@ class XuanMuFinanceApp {
   constructor() {
     this.appTitle = localStorage.getItem('xm_app_title') || '小萌馬金庫';
     
-    // Load and normalize transactions
+    // Load local storage
     this.transactions = (JSON.parse(localStorage.getItem('xm_transactions')) || DEFAULT_TRANSACTIONS)
       .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11');
+
+    // Force merge any missing August transactions (8/12, 8/17, 8/18, 8/19, 8/20) into local dataset
+    DEFAULT_TRANSACTIONS.forEach(dtx => {
+      const exists = this.transactions.some(t => t.id === dtx.id || (t.date === dtx.date && Number(t.amount) === dtx.amount && t.note === dtx.note));
+      if (!exists) {
+        this.transactions.push(dtx);
+      }
+    });
 
     this.accounts = JSON.parse(localStorage.getItem('xm_accounts')) || DEFAULT_ACCOUNTS;
     this.quickPresets = JSON.parse(localStorage.getItem('xm_quick_presets')) || DEFAULT_QUICK_PRESETS;
@@ -64,12 +68,11 @@ class XuanMuFinanceApp {
       this.accounts.push({ id: 'acc-atong', name: '💳 阿彤代付', group: '代付墊款', icon: 'fa-credit-card text-purple-500', badge: '阿彤墊款專區', note: '阿彤先用自己的錢幫宣穆付費，隨時可一鍵歸還還款' });
     }
 
-    // Auto-clean & fix self-transfers for cash & wallets
+    // Normalize accounts
     this.transactions = this.transactions.map(tx => {
       let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
       let tgt = this.normalizeAccountName(tx.targetAccount);
       
-      // FIX CASH SELF-TRANSFER BUG: If cash spent set target to cash, change target to merchant
       if (tx.type === '支出' && src === '育兒實體現金' && tgt === '育兒實體現金') {
         tgt = '商家/用品店';
       }
@@ -230,13 +233,18 @@ class XuanMuFinanceApp {
       }
 
       if (res && res.transactions && Array.isArray(res.transactions)) {
-        if (res.updatedAt && res.updatedAt !== this.lastUpdatedAt) {
-          this.lastUpdatedAt = res.updatedAt;
-          localStorage.setItem('xm_last_updated_at', res.updatedAt);
+        if (!isSilent || res.transactions.length >= this.transactions.length || res.updatedAt !== this.lastUpdatedAt) {
+          this.lastUpdatedAt = res.updatedAt || new Date().toISOString();
+          localStorage.setItem('xm_last_updated_at', this.lastUpdatedAt);
           
           if (res.appTitle) this.appTitle = res.appTitle;
 
-          this.transactions = res.transactions
+          // Merge cloud transactions with local transactions
+          const map = new Map();
+          this.transactions.forEach(t => map.set(t.id, t));
+          res.transactions.forEach(t => map.set(t.id, t));
+
+          this.transactions = Array.from(map.values())
             .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11')
             .map(tx => {
               let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
@@ -313,7 +321,6 @@ class XuanMuFinanceApp {
         else if (tx.fund === '宣穆投資') xuanmuInvest += amt;
         else otherFund += amt;
       } else if (tx.type === '支出') {
-        // Exclude wallet micro-expenses, BUT INCLUDE Mom's Advance Payments (阿彤代付) in fund total!
         if (!isFromWallet) {
           if (tx.fund === '宣穆戶頭') xuanmuAccount -= amt;
           else if (tx.fund === '宣穆基金') xuanmuFund -= amt;
