@@ -1,32 +1,38 @@
 /**
  * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Ultra-Intuitive Redesign Edition)
  * Highlights:
- * 1. 🏦 新增【宣穆永豐個人戶 (投資戶)】（李宣穆名下獨立永豐個人戶，專作投資積蓄使用）。
- * 2. 徹底摒棄『付款管道』與『受款對象』雙重複雜下拉選單！
- * 3. 簡化為 3 大情境卡片：【🛍️ 記開銷/阿彤代付】、【📥 記收入/津貼】、【🔄 撥款與還錢給阿彤】。
- * 4. 點選視覺化大標籤按鈕，填寫金額與項目名稱，系統在背景自動完成所有複式記帳邏輯！
+ * 1. 🏷️ 開銷類別龍統簡化：預設僅【育兒用品】、【醫療費用】、【其他】3大超直覺類別。
+ * 2. ⚙️ 提供完全自由編輯增減類別功能（可於設定彈窗中自由新增、編輯或刪除類別）。
+ * 3. 🏦 宣穆永豐個人戶 (投資戶) 專屬帳戶統計。
+ * 4. 跨行/提款手續費自動拆單紀錄。
  */
 
+const DEFAULT_CATEGORIES = [
+  '育兒用品',
+  '醫療費用',
+  '其他'
+];
+
 const DEFAULT_TRANSACTIONS = [
-  { id: 'tx-21', date: '2026-08-20', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '醫療衛教', fund: '宣穆基金', amount: 4000, note: '腸病毒疫苗第一劑' },
-  { id: 'tx-20', date: '2026-08-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', amount: 3326, note: '織物清洗機運費' },
-  { id: 'tx-19', date: '2026-08-18', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '醫療衛教', fund: '宣穆基金', amount: 1900, note: '自費預防針（輪狀病毒...）' },
-  { id: 'tx-18', date: '2026-08-17', type: '支出', sourceAccount: '育兒實體現金', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', amount: 4800, note: '臍帶章' },
-  { id: 'tx-17', date: '2026-08-12', type: '支出', sourceAccount: '共同小雞錢包', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', amount: 2048, note: '林貝兒兩罐+兩盒' },
-  { id: 'tx-16', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '每月開銷', fund: '宣穆基金', amount: 5368, note: '圍欄' },
-  { id: 'tx-15', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', amount: 15000, note: '115/8 共同小雞' },
+  { id: 'tx-21', date: '2026-08-20', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '醫療費用', fund: '宣穆基金', amount: 4000, note: '腸病毒疫苗第一劑' },
+  { id: 'tx-20', date: '2026-08-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 3326, note: '織物清洗機運費' },
+  { id: 'tx-19', date: '2026-08-18', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '醫療費用', fund: '宣穆基金', amount: 1900, note: '自費預防針（輪狀病毒...）' },
+  { id: 'tx-18', date: '2026-08-17', type: '支出', sourceAccount: '育兒實體現金', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 4800, note: '臍帶章' },
+  { id: 'tx-17', date: '2026-08-12', type: '支出', sourceAccount: '共同小雞錢包', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 2048, note: '林貝兒兩罐+兩盒' },
+  { id: 'tx-16', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒用品', fund: '宣穆基金', amount: 5368, note: '圍欄' },
+  { id: 'tx-15', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '育兒用品', fund: '宣穆基金', amount: 15000, note: '115/8 共同小雞' },
   { id: 'tx-14', date: '2026-08-08', type: '收入', sourceAccount: '政府補助/親友', targetAccount: '育兒實體現金', category: '其他', fund: '宣穆戶頭', amount: 4800, note: '政詢親戚給的 (阿姨+小舅舅)' },
-  { id: 'tx-13', date: '2026-08-07', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', amount: 10321, note: '阿萌花用：扣款 10321' },
-  { id: 'tx-12', date: '2026-08-05', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒大額設備/用品', fund: '宣穆基金', amount: 7539, note: '8/5 購買織物清洗機 (育兒開銷)' },
-  { id: 'tx-9', date: '2026-08-01', type: '支出', sourceAccount: '郵局數位帳戶', targetAccount: 'LINE 阿萌', category: '每月開銷', fund: '宣穆基金', amount: 10000, note: '8/1 阿萌小雞' },
-  { id: 'tx-8', date: '2026-07-20', type: '收入', sourceAccount: '萌媽資助', targetAccount: '育兒實體現金', category: '萌媽', fund: '其他', amount: 20000, note: '萌媽點外送資助 (現金)' },
-  { id: 'tx-7', date: '2026-07-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: 'LINE 阿萌', category: '每月開銷', fund: '宣穆基金', amount: 10000, note: '7/19 阿萌小雞' },
-  { id: 'tx-6', date: '2026-07-15', type: '收入', sourceAccount: '政府補助/親友', targetAccount: '郵局 (實體存簿)', category: '固定收入', fund: '宣穆戶頭', amount: 5000, note: '育兒津貼6月' },
-  { id: 'tx-5', date: '2026-07-10', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '郵局數位帳戶', category: '轉帳', fund: '宣穆基金', amount: 180000, note: '永豐轉入郵局數位帳戶' },
-  { id: 'tx-4', date: '2026-07-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', amount: 15000, note: '115/7 共同小雞' },
-  { id: 'tx-3', date: '2026-07-08', type: '收入', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '永豐大戶 (DAWHO)', category: '萌爸', fund: '宣穆基金', amount: 360000, note: '115/7-116/7宣穆津貼' },
-  { id: 'tx-2', date: '2026-06-30', type: '收入', sourceAccount: '政府補助/現金', targetAccount: '郵局 (實體存簿)', category: '單次津貼', fund: '宣穆戶頭', amount: 100000, note: '生育津貼' },
-  { id: 'tx-1', date: '2026-06-22', type: '收入', sourceAccount: '政府補助/現金', targetAccount: '郵局 (實體存簿)', category: '單次津貼', fund: '宣穆戶頭', amount: 20000, note: '台中市加碼津貼' }
+  { id: 'tx-13', date: '2026-08-07', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 10321, note: '阿萌花用：扣款 10321' },
+  { id: 'tx-12', date: '2026-08-05', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒用品', fund: '宣穆基金', amount: 7539, note: '8/5 購買織物清洗機 (育兒開銷)' },
+  { id: 'tx-9', date: '2026-08-01', type: '支出', sourceAccount: '郵局數位帳戶', targetAccount: 'LINE 阿萌', category: '育兒用品', fund: '宣穆基金', amount: 10000, note: '8/1 阿萌小雞' },
+  { id: 'tx-8', date: '2026-07-20', type: '收入', sourceAccount: '萌媽資助', targetAccount: '育兒實體現金', category: '其他', fund: '其他', amount: 20000, note: '萌媽點外送資助 (現金)' },
+  { id: 'tx-7', date: '2026-07-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: 'LINE 阿萌', category: '育兒用品', fund: '宣穆基金', amount: 10000, note: '7/19 阿萌小雞' },
+  { id: 'tx-6', date: '2026-07-15', type: '收入', sourceAccount: '政府補助/親友', targetAccount: '郵局 (實體存簿)', category: '其他', fund: '宣穆戶頭', amount: 5000, note: '育兒津貼6月' },
+  { id: 'tx-5', date: '2026-07-10', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '郵局數位帳戶', category: '其他', fund: '宣穆基金', amount: 180000, note: '永豐轉入郵局數位帳戶' },
+  { id: 'tx-4', date: '2026-07-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '育兒用品', fund: '宣穆基金', amount: 15000, note: '115/7 共同小雞' },
+  { id: 'tx-3', date: '2026-07-08', type: '收入', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '永豐大戶 (DAWHO)', category: '其他', fund: '宣穆基金', amount: 360000, note: '115/7-116/7宣穆津貼' },
+  { id: 'tx-2', date: '2026-06-30', type: '收入', sourceAccount: '政府補助/現金', targetAccount: '郵局 (實體存簿)', category: '其他', fund: '宣穆戶頭', amount: 100000, note: '生育津貼' },
+  { id: 'tx-1', date: '2026-06-22', type: '收入', sourceAccount: '政府補助/現金', targetAccount: '郵局 (實體存簿)', category: '其他', fund: '宣穆戶頭', amount: 20000, note: '台中市加碼津貼' }
 ];
 
 const DEFAULT_ACCOUNTS = [
@@ -41,15 +47,16 @@ const DEFAULT_ACCOUNTS = [
 ];
 
 const DEFAULT_QUICK_PRESETS = [
-  { id: 'qp-atong', name: '💳 阿彤先墊錢 (代付)', mode: 'prompt-atong', type: '支出', sourceAccount: '💳 阿彤代付', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', note: '阿彤代付', icon: 'fa-credit-card text-purple-500', border: 'border-purple-200 hover:border-purple-400 bg-purple-50/40', desc: '阿彤拿自己的錢先幫宣穆付費' },
-  { id: 'qp-chick', name: '🐥 小雞花用 (扣小雞錢包)', mode: 'prompt', type: '支出', sourceAccount: '共同小雞錢包', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', note: '買飯/尿布', icon: 'fa-cart-shopping text-rose-500', border: 'border-rose-200 hover:border-rose-400 bg-rose-50/30', desc: '按下去輸入金額與日期，扣小雞錢包' },
-  { id: 'qp-among', name: '💬 萌 LINE 花用 (扣阿萌錢包)', mode: 'prompt', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', note: '扣款', icon: 'fa-comment text-emerald-500', border: 'border-emerald-200 hover:border-emerald-400 bg-emerald-50/30', desc: '按下去輸入金額與日期，扣 LINE 阿萌' },
-  { id: 'qp-reimburse', name: '💸 還錢給阿彤 (代付歸還)', mode: 'prompt-reimburse', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '💳 阿彤代付', category: '轉帳', fund: '宣穆基金', note: '歸還阿彤代付款', icon: 'fa-hand-holding-hand text-indigo-500', border: 'border-indigo-200 hover:border-indigo-400 bg-indigo-50/40', desc: '從宣穆基金/銀行歸還墊款給阿彤' }
+  { id: 'qp-atong', name: '💳 阿彤先墊錢 (代付)', mode: 'prompt-atong', type: '支出', sourceAccount: '💳 阿彤代付', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', note: '阿彤代付', icon: 'fa-credit-card text-purple-500', border: 'border-purple-200 hover:border-purple-400 bg-purple-50/40', desc: '阿彤拿自己的錢先幫宣穆付費' },
+  { id: 'qp-chick', name: '🐥 小雞花用 (扣小雞錢包)', mode: 'prompt', type: '支出', sourceAccount: '共同小雞錢包', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', note: '買飯/尿布', icon: 'fa-cart-shopping text-rose-500', border: 'border-rose-200 hover:border-rose-400 bg-rose-50/30', desc: '按下去輸入金額與日期，扣小雞錢包' },
+  { id: 'qp-among', name: '💬 萌 LINE 花用 (扣阿萌錢包)', mode: 'prompt', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', note: '扣款', icon: 'fa-comment text-emerald-500', border: 'border-emerald-200 hover:border-emerald-400 bg-emerald-50/30', desc: '按下去輸入金額與日期，扣 LINE 阿萌' },
+  { id: 'qp-reimburse', name: '💸 還錢給阿彤 (代付歸還)', mode: 'prompt-reimburse', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '💳 阿彤代付', category: '其他', fund: '宣穆基金', note: '歸還阿彤代付款', icon: 'fa-hand-holding-hand text-indigo-500', border: 'border-indigo-200 hover:border-indigo-400 bg-indigo-50/40', desc: '從宣穆基金/銀行歸還墊款給阿彤' }
 ];
 
 class XuanMuFinanceApp {
   constructor() {
     this.appTitle = localStorage.getItem('xm_app_title') || '小萌馬金庫';
+    this.categories = JSON.parse(localStorage.getItem('xm_categories')) || DEFAULT_CATEGORIES;
     
     // Load local storage
     this.transactions = (JSON.parse(localStorage.getItem('xm_transactions')) || DEFAULT_TRANSACTIONS)
@@ -78,10 +85,11 @@ class XuanMuFinanceApp {
     this.syncRoomKey = localStorage.getItem('xm_sync_room') || 'hughtong-2026';
     this.lastUpdatedAt = localStorage.getItem('xm_last_updated_at') || '';
 
-    // Normalize account names
+    // Normalize account names & categories
     this.transactions = this.transactions.map(tx => {
       let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
       let tgt = this.normalizeAccountName(tx.targetAccount);
+      let cat = this.normalizeCategory(tx.category);
       
       if (tx.type === '支出' && src === '育兒實體現金' && tgt === '育兒實體現金') {
         tgt = '商家/用品店';
@@ -91,7 +99,7 @@ class XuanMuFinanceApp {
         tgt = '商家/用品店';
       }
 
-      return { ...tx, sourceAccount: src, targetAccount: tgt };
+      return { ...tx, sourceAccount: src, targetAccount: tgt, category: cat };
     }).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -142,6 +150,14 @@ class XuanMuFinanceApp {
       return 'LINE 阿萌';
     }
     return s;
+  }
+
+  normalizeCategory(rawCat) {
+    if (!rawCat) return '育兒用品';
+    if (rawCat.includes('醫療') || rawCat.includes('預防針') || rawCat.includes('衛教')) return '醫療費用';
+    if (rawCat.includes('用品') || rawCat.includes('開銷') || rawCat.includes('設備') || rawCat.includes('便當') || rawCat.includes('尿布')) return '育兒用品';
+    if (this.categories.includes(rawCat)) return rawCat;
+    return '其他';
   }
 
   initDOM() {
@@ -198,6 +214,7 @@ class XuanMuFinanceApp {
 
   saveState() {
     localStorage.setItem('xm_app_title', this.appTitle);
+    localStorage.setItem('xm_categories', JSON.stringify(this.categories));
     localStorage.setItem('xm_transactions', JSON.stringify(this.transactions));
     localStorage.setItem('xm_accounts', JSON.stringify(this.accounts));
     localStorage.setItem('xm_quick_presets', JSON.stringify(this.quickPresets));
@@ -217,6 +234,7 @@ class XuanMuFinanceApp {
         key: this.syncRoomKey,
         appTitle: this.appTitle,
         updatedAt: nowStr,
+        categories: this.categories,
         transactions: this.transactions,
         accounts: this.accounts,
         quickPresets: this.quickPresets
@@ -252,6 +270,7 @@ class XuanMuFinanceApp {
           localStorage.setItem('xm_last_updated_at', this.lastUpdatedAt);
           
           if (res.appTitle) this.appTitle = res.appTitle;
+          if (res.categories && Array.isArray(res.categories)) this.categories = res.categories;
 
           const map = new Map();
           this.transactions.forEach(t => map.set(t.id, t));
@@ -262,6 +281,7 @@ class XuanMuFinanceApp {
             .map(tx => {
               let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
               let tgt = this.normalizeAccountName(tx.targetAccount);
+              let cat = this.normalizeCategory(tx.category);
               
               if (tx.type === '支出' && src === '育兒實體現金' && tgt === '育兒實體現金') {
                 tgt = '商家/用品店';
@@ -271,7 +291,7 @@ class XuanMuFinanceApp {
                 tgt = '商家/用品店';
               }
 
-              return { ...tx, sourceAccount: src, targetAccount: tgt };
+              return { ...tx, sourceAccount: src, targetAccount: tgt, category: cat };
             })
             .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
             
@@ -413,20 +433,70 @@ class XuanMuFinanceApp {
     document.getElementById('card-xuanmu-invest').textContent = `$${(data.xuanmuInvest + data.otherFund + (data.accountBalances['宣穆永豐個人戶 (投資戶)'] || 0)).toLocaleString()}`;
     document.getElementById('badge-total-transactions').textContent = `${this.transactions.length} 筆紀錄 ➔`;
 
+    this.renderCategoryDropdowns();
     this.renderQuickPresets();
     this.renderBudgetTrackers(data);
     this.renderAccountsGrid(data);
     this.renderCharts(data);
     this.renderTransactionsTable();
     this.renderRulesAccountList(data);
+    this.renderRulesCategoryList();
     this.updateFormAccountDropdowns();
 
     localStorage.setItem('xm_app_title', this.appTitle);
+    localStorage.setItem('xm_categories', JSON.stringify(this.categories));
     localStorage.setItem('xm_transactions', JSON.stringify(this.transactions));
     localStorage.setItem('xm_accounts', JSON.stringify(this.accounts));
     localStorage.setItem('xm_quick_presets', JSON.stringify(this.quickPresets));
     localStorage.setItem('xm_subsidy_rule', this.subsidyRule);
     localStorage.setItem('xm_sync_room', this.syncRoomKey);
+  }
+
+  renderCategoryDropdowns() {
+    if (!this.txCategory) return;
+    const currentVal = this.txCategory.value;
+    
+    const opts = this.categories.map(c => `<option value="${c}" ${currentVal === c ? 'selected' : ''}>${c}</option>`).join('');
+    this.txCategory.innerHTML = opts;
+  }
+
+  renderRulesCategoryList() {
+    const list = document.getElementById('rules-category-list');
+    if (!list) return;
+
+    list.innerHTML = '';
+    this.categories.forEach((cat, idx) => {
+      const item = document.createElement('div');
+      item.className = 'flex items-center gap-2 bg-slate-50 border border-slate-200 p-2 rounded-xl';
+      item.innerHTML = `
+        <input type="text" data-cat-idx="${idx}" class="cat-input-name font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:border-amber-400 flex-1" value="${cat}">
+        <button type="button" onclick="app.deleteCategory(${idx})" class="text-rose-500 hover:text-rose-700 px-2 py-1 font-bold text-xs">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      `;
+      list.appendChild(item);
+    });
+  }
+
+  addCategoryPrompt() {
+    const name = prompt('請輸入新開銷類別名稱（例：教育保險、彌月禮盒）：');
+    if (!name) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (this.categories.includes(trimmed)) return alert('該類別名稱已存在！');
+
+    this.categories.push(trimmed);
+    this.renderCategoryDropdowns();
+    this.renderRulesCategoryList();
+  }
+
+  deleteCategory(idx) {
+    if (this.categories.length <= 1) return alert('請至少保留一個開銷類別！');
+    if (confirm(`確定要刪除類別【${this.categories[idx]}】嗎？`)) {
+      this.categories.splice(idx, 1);
+      this.renderCategoryDropdowns();
+      this.renderRulesCategoryList();
+    }
   }
 
   renderQuickPresets() {
@@ -483,7 +553,7 @@ class XuanMuFinanceApp {
         type: '支出',
         sourceAccount: '💳 阿彤代付',
         targetAccount: '商家/用品店',
-        category: '每月開銷',
+        category: '育兒用品',
         fund: '宣穆基金',
         amount: amt,
         note: `阿彤代付：${note}`
@@ -514,7 +584,7 @@ class XuanMuFinanceApp {
         type: '轉帳',
         sourceAccount: '永豐大戶 (DAWHO)',
         targetAccount: '💳 阿彤代付',
-        category: '轉帳',
+        category: '其他',
         fund: '宣穆基金',
         amount: amt,
         note: `歸還阿彤代付款 $${amt.toLocaleString()}`
@@ -547,7 +617,7 @@ class XuanMuFinanceApp {
         type: qp.type || '支出',
         sourceAccount: this.normalizeAccountName(qp.sourceAccount, qp.type === '收入'),
         targetAccount: this.normalizeAccountName(qp.targetAccount),
-        category: qp.category || (qp.type === '收入' ? '單次津貼' : '每月開銷'),
+        category: qp.category || '育兒用品',
         fund: qp.fund || '宣穆基金',
         amount: amt,
         note: note
@@ -567,7 +637,7 @@ class XuanMuFinanceApp {
     if (qp.amount) this.txAmount.value = qp.amount;
     this.txSourceAccount.value = this.normalizeAccountName(qp.sourceAccount, qp.type === '收入');
     this.txTargetAccount.value = this.normalizeAccountName(qp.targetAccount);
-    this.txCategory.value = qp.category || '每月開銷';
+    this.txCategory.value = qp.category || '育兒用品';
     this.txFund.value = qp.fund || '宣穆基金';
     this.txNote.value = qp.note || qp.name;
   }
@@ -684,7 +754,7 @@ class XuanMuFinanceApp {
       type: '支出',
       sourceAccount: '共同小雞錢包',
       targetAccount: '商家/用品店',
-      category: '每月開銷',
+      category: '育兒用品',
       fund: '宣穆基金',
       mode: 'prompt',
       note: name,
@@ -1340,9 +1410,22 @@ class XuanMuFinanceApp {
       if (this.accounts[idx]) this.accounts[idx].note = input.value;
     });
 
+    const catInputs = document.querySelectorAll('.cat-input-name');
+    const newCats = [];
+    catInputs.forEach(input => {
+      const val = input.value.trim();
+      if (val && !newCats.includes(val)) {
+        newCats.push(val);
+      }
+    });
+
+    if (newCats.length > 0) {
+      this.categories = newCats;
+    }
+
     this.render();
     this.saveState();
-    alert('系統大標題與說明文字已成功修改並儲存！');
+    alert('系統大標題、帳戶與開銷類別設定已成功儲存！');
     this.closeModal(this.modalRules);
   }
 
@@ -1378,38 +1461,38 @@ class XuanMuFinanceApp {
       this.txTargetAccount.value = '商家/用品店';
       this.txFund.value = '宣穆基金';
       if (!this.txCategory.value || this.txCategory.value === '轉帳') {
-        this.txCategory.value = '每月開銷';
+        this.txCategory.value = '育兒用品';
       }
     } else if (type === '收入') {
       if (src === '政府補助/親友' || src.includes('補助') || src.includes('郵局')) {
         this.txTargetAccount.value = '郵局 (實體存簿)';
         this.txFund.value = '宣穆戶頭';
-        this.txCategory.value = '固定收入';
+        this.txCategory.value = '其他';
       } else if (src.includes('宣穆永豐') || src.includes('投資')) {
         this.txTargetAccount.value = '宣穆永豐個人戶 (投資戶)';
         this.txFund.value = '宣穆投資';
-        this.txCategory.value = '投資理財';
+        this.txCategory.value = '其他';
       } else if (src.includes('萌媽')) {
         this.txTargetAccount.value = '育兒實體現金';
         this.txFund.value = '其他';
-        this.txCategory.value = '萌媽';
+        this.txCategory.value = '其他';
       } else {
         this.txTargetAccount.value = '育兒實體現金';
         this.txFund.value = '宣穆戶頭';
-        this.txCategory.value = '單次津貼';
+        this.txCategory.value = '其他';
       }
     } else if (type === '轉帳') {
       if (src === '永豐大戶 (DAWHO)') {
         this.txTargetAccount.value = '共同小雞錢包';
-        this.txCategory.value = '轉帳';
+        this.txCategory.value = '其他';
         this.txFund.value = '宣穆基金';
       } else if (src === '郵局數位帳戶') {
         this.txTargetAccount.value = 'LINE 阿萌';
-        this.txCategory.value = '轉帳';
+        this.txCategory.value = '其他';
         this.txFund.value = '宣穆基金';
       } else if (src.includes('郵局')) {
         this.txTargetAccount.value = '宣穆永豐個人戶 (投資戶)';
-        this.txCategory.value = '轉帳';
+        this.txCategory.value = '其他';
         this.txFund.value = '宣穆投資';
       }
     }
@@ -1503,7 +1586,7 @@ class XuanMuFinanceApp {
       type: this.currentTxType,
       sourceAccount: src,
       targetAccount: tgt,
-      category: this.txCategory.value,
+      category: this.txCategory.value || '育兒用品',
       fund: this.txFund.value,
       amount: Number(this.txAmount.value),
       note: this.txNote.value
@@ -1524,7 +1607,7 @@ class XuanMuFinanceApp {
         type: '支出',
         sourceAccount: src,
         targetAccount: '金融機構/手續費',
-        category: '每月開銷',
+        category: '其他',
         fund: '宣穆基金',
         amount: fee,
         note: `跨行/提款手續費 $${fee} (${this.txNote.value || '手續費'})`

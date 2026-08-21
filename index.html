@@ -563,6 +563,30 @@
           <input type="text" id="rule-app-title" class="font-black text-slate-800 bg-white border border-amber-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500 w-full" value="李宣穆育兒資金控管">
         </div>
 
+        <!-- Dynamic Account Notes & Badges Editing -->
+        <div>
+          <h4 class="font-extrabold text-slate-800 text-sm mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-wallet text-amber-500"></i> 各帳戶說明與備註修改
+          </h4>
+          <div id="rules-accounts-list" class="space-y-3">
+          </div>
+        </div>
+
+        <!-- Dynamic Category Management Section -->
+        <div class="space-y-2 pt-4 border-t border-slate-200">
+          <div class="flex items-center justify-between">
+            <h4 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-tags text-amber-500"></i> 收支開銷類別自由增減與修改
+            </h4>
+            <button type="button" onclick="app.addCategoryPrompt()" class="text-xs font-extrabold text-amber-700 hover:text-amber-900 flex items-center gap-1 bg-amber-100 px-2.5 py-1 rounded-xl">
+              <i class="fa-solid fa-plus"></i> 新增類別
+            </button>
+          </div>
+          <p class="text-slate-500 text-[11px]">預設保持龍統簡潔 (育兒用品、醫療費用、其他)，您可隨時自由編輯或刪除：</p>
+          <div id="rules-category-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          </div>
+        </div>
+
         <div>
           <h4 class="font-extrabold text-slate-800 text-sm mb-2 flex items-center gap-2">
             <i class="fa-solid fa-hand-holding-hand text-amber-500"></i> 補助說明與標籤編輯
@@ -662,7 +686,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260821-v5"></script>
+  <script src="app.js?v=20260821-v6"></script>
   <!-- Modal 6: Account Breakdown & Transaction Details -->
   <div id="modal-account-details" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
