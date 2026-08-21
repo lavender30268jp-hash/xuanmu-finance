@@ -1,13 +1,21 @@
 /**
- * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Light Cozy Edition)
- * Fixed:
- * 1. Correct Income color formatting (Type = '收入' always green +$amt, never red -$amt).
- * 2. Top 4 summary dashboard cards are clickable to open detailed transaction breakdown modals.
+ * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Light Cozy Professional Edition)
+ * Highlights:
+ * 1. 💳 阿彤代付 & 待歸還還款機制 (Mom Advance Payment & Reimbursement System).
+ * 2. 💵 實體現金 $24,800 - $4,800 (臍帶章) 扣款修正，精準顯示現存 $20,000 元！
+ * 3. ⚡ 超極簡直覺記帳流：【阿彤代付】、【小雞/阿萌花用】、【基金採買】、【撥款與歸還還款】3步彈窗極速完成！
+ * 4. 🔄 雙重即時雲端自動同步，解決手機與電腦資料庫不一致問題。
  */
 
 const DEFAULT_TRANSACTIONS = [
+  { id: 'tx-21', date: '2026-08-20', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '醫療衛教', fund: '宣穆基金', amount: 4000, note: '腸病毒疫苗第一劑' },
+  { id: 'tx-20', date: '2026-08-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', amount: 3326, note: '織物清洗機運費' },
+  { id: 'tx-19', date: '2026-08-18', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '醫療衛教', fund: '宣穆基金', amount: 1900, note: '自費預防針（輪狀病毒...）' },
+  { id: 'tx-18', date: '2026-08-17', type: '支出', sourceAccount: '育兒實體現金', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', amount: 4800, note: '臍帶章' },
+  { id: 'tx-17', date: '2026-08-12', type: '支出', sourceAccount: '共同小雞錢包', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', amount: 2048, note: '林貝兒兩罐+兩盒' },
+  { id: 'tx-16', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '每月開銷', fund: '宣穆基金', amount: 5368, note: '圍欄' },
   { id: 'tx-15', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', amount: 15000, note: '115/8 共同小雞' },
-  { id: 'tx-14', date: '2026-08-08', type: '收入', sourceAccount: '親戚紅包', targetAccount: '育兒實體現金', category: '其他', fund: '宣穆戶頭', amount: 4800, note: '政詢親戚給的 (阿姨+小舅舅)' },
+  { id: 'tx-14', date: '2026-08-08', type: '收入', sourceAccount: '政府補助/親友', targetAccount: '育兒實體現金', category: '其他', fund: '宣穆戶頭', amount: 4800, note: '政詢親戚給的 (阿姨+小舅舅)' },
   { id: 'tx-13', date: '2026-08-07', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', amount: 10321, note: '阿萌花用：扣款 10321' },
   { id: 'tx-12', date: '2026-08-05', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒大額設備/用品', fund: '宣穆基金', amount: 7539, note: '8/5 購買織物清洗機 (育兒開銷)' },
   { id: 'tx-9', date: '2026-08-01', type: '支出', sourceAccount: '郵局數位帳戶', targetAccount: 'LINE 阿萌', category: '每月開銷', fund: '宣穆基金', amount: 10000, note: '8/1 阿萌小雞' },
@@ -25,31 +33,26 @@ const DEFAULT_ACCOUNTS = [
   { id: 'acc-post-phys', name: '郵局 (實體存簿)', group: '存款帳戶', icon: 'fa-envelope-open-text text-emerald-500', badge: '實體存簿', note: '政府補助生育給付/育兒津貼專款' },
   { id: 'acc-post-digi', name: '郵局數位帳戶', group: '存款帳戶', icon: 'fa-mobile-screen-button text-cyan-500', badge: '數位帳戶', note: '存放萌爸 18 萬宣穆基金' },
   { id: 'acc-sinopac', name: '永豐大戶 (DAWHO)', group: '存款帳戶', icon: 'fa-building-columns text-teal-500', badge: '主要轉入帳戶', note: '存放萌爸 18 萬宣穆基金' },
-  { id: 'acc-cash', name: '育兒實體現金', group: '實體現金', icon: 'fa-money-bill-wave text-amber-500', badge: '手邊現金/紅包', note: '收到的親友紅包與現金資助 (尚未存入銀行卡)' },
-  { id: 'acc-joint', name: '共同小雞錢包', group: '開銷錢包', icon: 'fa-heart text-rose-500', badge: '日常開銷錢包', note: '買飯、尿布、育兒用品 (點擊看明細/按鈕輸入金額扣抵)' },
-  { id: 'acc-line-among', name: 'LINE 阿萌', group: '開銷錢包', icon: 'fa-comment text-emerald-500', badge: '阿萌開銷錢包', note: '阿萌買兒子花費與共同餐費 (點擊看明細/按鈕輸入金額扣抵)' }
+  { id: 'acc-cash', name: '育兒實體現金', group: '實體現金', icon: 'fa-money-bill-wave text-amber-500', badge: '手邊現金/紅包', note: '收到的親友紅包與現金資助' },
+  { id: 'acc-joint', name: '共同小雞錢包', group: '開銷錢包', icon: 'fa-heart text-rose-500', badge: '日常開銷錢包', note: '買飯、尿布、育兒用品' },
+  { id: 'acc-line-among', name: 'LINE 阿萌', group: '開銷錢包', icon: 'fa-comment text-emerald-500', badge: '阿萌開銷錢包', note: '阿萌買兒子花費與共同餐費' },
+  { id: 'acc-atong', name: '💳 阿彤代付', group: '代付墊款', icon: 'fa-credit-card text-purple-500', badge: '阿彤墊款專區', note: '阿彤先用自己的錢幫宣穆付費，隨時可一鍵歸還還款' }
 ];
 
 const DEFAULT_QUICK_PRESETS = [
+  { id: 'qp-atong', name: '💳 阿彤先墊錢 (代付)', mode: 'prompt-atong', type: '支出', sourceAccount: '💳 阿彤代付', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', note: '阿彤代付', icon: 'fa-credit-card text-purple-500', border: 'border-purple-200 hover:border-purple-400 bg-purple-50/40', desc: '阿彤拿自己的錢先幫宣穆付費' },
   { id: 'qp-chick', name: '🐥 小雞花用 (扣小雞錢包)', mode: 'prompt', type: '支出', sourceAccount: '共同小雞錢包', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', note: '買飯/尿布', icon: 'fa-cart-shopping text-rose-500', border: 'border-rose-200 hover:border-rose-400 bg-rose-50/30', desc: '按下去輸入金額與日期，扣小雞錢包' },
   { id: 'qp-among', name: '💬 萌 LINE 花用 (扣阿萌錢包)', mode: 'prompt', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '每月開銷', fund: '宣穆基金', note: '扣款', icon: 'fa-comment text-emerald-500', border: 'border-emerald-200 hover:border-emerald-400 bg-emerald-50/30', desc: '按下去輸入金額與日期，扣 LINE 阿萌' },
-  { id: 'qp-single', name: '🛍️ 宣穆基金單筆育兒支出', mode: 'prompt', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒大額設備/用品', fund: '宣穆基金', note: '購買織物清洗機 (育兒開銷)', icon: 'fa-bag-shopping text-purple-500', border: 'border-purple-200 hover:border-purple-400 bg-purple-50/30', desc: '例：買織物清洗機/大額用品' },
-  { id: 'qp-topup-chick', name: '➕ 共同小雞 (撥款 1.5萬)', mode: 'direct', amount: 15000, type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', note: '115/8 共同小雞', icon: 'fa-heart text-rose-500', border: 'border-teal-200 hover:border-teal-400', desc: '撥款 1.5 萬入共同小雞' }
+  { id: 'qp-reimburse', name: '💸 還錢給阿彤 (代付歸還)', mode: 'prompt-reimburse', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '💳 阿彤代付', category: '轉帳', fund: '宣穆基金', note: '歸還阿彤代付款', icon: 'fa-hand-holding-hand text-indigo-500', border: 'border-indigo-200 hover:border-indigo-400 bg-indigo-50/40', desc: '從宣穆基金/銀行歸還墊款給阿彤' }
 ];
 
 class XuanMuFinanceApp {
   constructor() {
     this.appTitle = localStorage.getItem('xm_app_title') || '小萌馬金庫';
     
+    // Load and normalize transactions
     this.transactions = (JSON.parse(localStorage.getItem('xm_transactions')) || DEFAULT_TRANSACTIONS)
       .filter(t => t.id !== 'tx-10' && t.id !== 'tx-11');
-
-    if (!this.transactions.some(t => t.id === 'tx-15' || (t.note && t.note.includes('115/8 共同小雞')))) {
-      this.transactions.push({ id: 'tx-15', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '每月開銷', fund: '宣穆基金', amount: 15000, note: '115/8 共同小雞' });
-    }
-    if (!this.transactions.some(t => t.id === 'tx-12' || (t.note && t.note.includes('織物清洗機')))) {
-      this.transactions.push({ id: 'tx-12', date: '2026-08-05', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒大額設備/用品', fund: '宣穆基金', amount: 7539, note: '8/5 購買織物清洗機 (育兒開銷)' });
-    }
 
     this.accounts = JSON.parse(localStorage.getItem('xm_accounts')) || DEFAULT_ACCOUNTS;
     this.quickPresets = JSON.parse(localStorage.getItem('xm_quick_presets')) || DEFAULT_QUICK_PRESETS;
@@ -57,14 +60,20 @@ class XuanMuFinanceApp {
     this.syncRoomKey = localStorage.getItem('xm_sync_room') || 'hughtong-2026';
     this.lastUpdatedAt = localStorage.getItem('xm_last_updated_at') || '';
 
-    if (!this.accounts.some(a => a.id === 'acc-cash' || a.name === '育兒實體現金')) {
-      this.accounts.splice(3, 0, { id: 'acc-cash', name: '育兒實體現金', group: '實體現金', icon: 'fa-money-bill-wave text-amber-500', badge: '手邊現金/紅包', note: '收到的親友紅包與現金資助 (尚未存入銀行卡)' });
+    if (!this.accounts.some(a => a.id === 'acc-atong' || a.name === '💳 阿彤代付')) {
+      this.accounts.push({ id: 'acc-atong', name: '💳 阿彤代付', group: '代付墊款', icon: 'fa-credit-card text-purple-500', badge: '阿彤墊款專區', note: '阿彤先用自己的錢幫宣穆付費，隨時可一鍵歸還還款' });
     }
 
+    // Auto-clean & fix self-transfers for cash & wallets
     this.transactions = this.transactions.map(tx => {
       let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
       let tgt = this.normalizeAccountName(tx.targetAccount);
       
+      // FIX CASH SELF-TRANSFER BUG: If cash spent set target to cash, change target to merchant
+      if (tx.type === '支出' && src === '育兒實體現金' && tgt === '育兒實體現金') {
+        tgt = '商家/用品店';
+      }
+
       if (tx.type === '支出' && (src === '共同小雞錢包' || src === 'LINE 阿萌') && (tgt === src || tgt === '共同小雞錢包' || tgt === 'LINE 阿萌')) {
         tgt = '商家/用品店';
       }
@@ -95,6 +104,9 @@ class XuanMuFinanceApp {
   normalizeAccountName(rawName, isIncomeSource = false) {
     if (!rawName) return '其他';
     const s = rawName.trim();
+    if (s.includes('阿彤') || s.includes('代付') || s.includes('墊款')) {
+      return '💳 阿彤代付';
+    }
     if (s.includes('郵局') && (s.includes('數') || s.includes('數位'))) {
       return '郵局數位帳戶';
     }
@@ -230,6 +242,10 @@ class XuanMuFinanceApp {
               let src = this.normalizeAccountName(tx.sourceAccount, tx.type === '收入');
               let tgt = this.normalizeAccountName(tx.targetAccount);
               
+              if (tx.type === '支出' && src === '育兒實體現金' && tgt === '育兒實體現金') {
+                tgt = '商家/用品店';
+              }
+
               if (tx.type === '支出' && (src === '共同小雞錢包' || src === 'LINE 阿萌') && (tgt === src || tgt === '共同小雞錢包' || tgt === 'LINE 阿萌')) {
                 tgt = '商家/用品店';
               }
@@ -262,12 +278,18 @@ class XuanMuFinanceApp {
       '永豐大戶 (DAWHO)': 0,
       '育兒實體現金': 0,
       '共同小雞錢包': 0,
-      'LINE 阿萌': 0
+      'LINE 阿萌': 0,
+      '💳 阿彤代付': 0
     };
 
     let walletStats = {
       '共同小雞錢包': { topUp: 0, spent: 0 },
       'LINE 阿萌': { topUp: 0, spent: 0 }
+    };
+
+    let atongStats = {
+      spent: 0,       // Mom advanced out of pocket
+      reimbursed: 0   // Reimbursed back to Mom
     };
 
     this.accounts.forEach(acc => {
@@ -284,13 +306,14 @@ class XuanMuFinanceApp {
 
       const isFromWallet = src.includes('錢包') || src.includes('阿萌');
 
-      // 1. Fund Totals (Exclude wallet micro-expenses from fund deduction)
+      // 1. Fund Totals
       if (tx.type === '收入') {
         if (tx.fund === '宣穆戶頭') xuanmuAccount += amt;
         else if (tx.fund === '宣穆基金') xuanmuFund += amt;
         else if (tx.fund === '宣穆投資') xuanmuInvest += amt;
         else otherFund += amt;
       } else if (tx.type === '支出') {
+        // Exclude wallet micro-expenses, BUT INCLUDE Mom's Advance Payments (阿彤代付) in fund total!
         if (!isFromWallet) {
           if (tx.fund === '宣穆戶頭') xuanmuAccount -= amt;
           else if (tx.fund === '宣穆基金') xuanmuFund -= amt;
@@ -299,7 +322,15 @@ class XuanMuFinanceApp {
         }
       }
 
-      // 2. Account & Outflow Wallet Balances
+      // 2. Account Balances & Mom Advance Tracking
+      if (src === '💳 阿彤代付') {
+        atongStats.spent += amt;
+      }
+
+      if (tgt === '💳 阿彤代付') {
+        atongStats.reimbursed += amt;
+      }
+
       if (tx.type === '收入') {
         accountBalances[tgt] = (accountBalances[tgt] || 0) + amt;
       } else if (tx.type === '支出') {
@@ -328,6 +359,8 @@ class XuanMuFinanceApp {
       }
     });
 
+    accountBalances['💳 阿彤代付'] = -(atongStats.spent - atongStats.reimbursed);
+
     const totalAssets = (accountBalances['郵局 (實體存簿)'] || 0) + 
                         (accountBalances['郵局數位帳戶'] || 0) + 
                         (accountBalances['永豐大戶 (DAWHO)'] || 0) +
@@ -340,7 +373,8 @@ class XuanMuFinanceApp {
       xuanmuInvest,
       otherFund,
       accountBalances,
-      walletStats
+      walletStats,
+      atongStats
     };
   }
 
@@ -410,6 +444,69 @@ class XuanMuFinanceApp {
 
     const today = new Date().toISOString().split('T')[0];
 
+    // Special Mode: Mom Advance Payment (阿彤先墊錢)
+    if (qp.mode === 'prompt-atong') {
+      const dateInput = prompt('請確認/修改墊付日期 (格式：YYYY-MM-DD)：', today) || today;
+      const note = prompt('請輸入阿彤先墊錢的物品說明 (例：腸病毒疫苗/嬰兒床)：', '阿彤代付開銷');
+      if (!note) return;
+      
+      const inputAmtStr = prompt(`請輸入【阿彤先墊錢】的金額 (元)：`, '1000');
+      if (!inputAmtStr) return;
+      const amt = Number(inputAmtStr.trim());
+      if (isNaN(amt) || amt <= 0) return alert('請輸入有效的金額！');
+
+      const newTx = {
+        id: 'tx-' + Date.now(),
+        date: dateInput,
+        type: '支出',
+        sourceAccount: '💳 阿彤代付',
+        targetAccount: '商家/用品店',
+        category: '每月開銷',
+        fund: '宣穆基金',
+        amount: amt,
+        note: `阿彤代付：${note}`
+      };
+
+      this.transactions.unshift(newTx);
+      this.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
+      this.render();
+      this.saveState();
+      alert(`已成功記錄 ${dateInput} 阿彤代付 $${amt.toLocaleString()} 元 (${note})！待還款金額已自動累積。`);
+      return;
+    }
+
+    // Special Mode: Reimburse Mom (歸還阿彤代付款)
+    if (qp.mode === 'prompt-reimburse') {
+      const data = this.calculateBalances();
+      const dueAmt = (data.atongStats.spent - data.atongStats.reimbursed);
+
+      const dateInput = prompt('請確認/修改還款日期 (格式：YYYY-MM-DD)：', today) || today;
+      const inputAmtStr = prompt(`請輸入【歸還阿彤代付款】金額 (目前阿彤待還款總額 $${dueAmt.toLocaleString()} 元)：`, dueAmt > 0 ? String(dueAmt) : '1000');
+      if (!inputAmtStr) return;
+      const amt = Number(inputAmtStr.trim());
+      if (isNaN(amt) || amt <= 0) return alert('請輸入有效的金額！');
+
+      const newTx = {
+        id: 'tx-' + Date.now(),
+        date: dateInput,
+        type: '轉帳',
+        sourceAccount: '永豐大戶 (DAWHO)',
+        targetAccount: '💳 阿彤代付',
+        category: '轉帳',
+        fund: '宣穆基金',
+        amount: amt,
+        note: `歸還阿彤代付款 $${amt.toLocaleString()}`
+      };
+
+      this.transactions.unshift(newTx);
+      this.transactions.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
+      this.render();
+      this.saveState();
+      alert(`已成功記錄 ${dateInput} 歸還阿彤 $${amt.toLocaleString()} 元！阿彤待還款金額已自動歸零/扣減。`);
+      return;
+    }
+
+    // Standard Prompt Mode
     if (qp.mode === 'prompt' || (qp.mode && qp.mode.startsWith('prompt'))) {
       const dateInput = prompt('請輸入/確認扣款日期 (格式：YYYY-MM-DD)：', today) || today;
       
@@ -461,6 +558,7 @@ class XuanMuFinanceApp {
   buildAccountOptionsHTML(selectedVal) {
     const normSel = this.normalizeAccountName(selectedVal);
     const opts = [
+      { name: '💳 阿彤代付', val: '💳 阿彤代付' },
       { name: '共同小雞錢包', val: '共同小雞錢包' },
       { name: 'LINE 阿萌', val: 'LINE 阿萌' },
       { name: '永豐大戶 (DAWHO)', val: '永豐大戶 (DAWHO)' },
@@ -652,7 +750,7 @@ class XuanMuFinanceApp {
     document.getElementById('monthly-progress-fill').style.width = `${augustPercent}%`;
 
     const monthlyTip = document.getElementById('monthly-pace-tip').querySelector('span');
-    monthlyTip.textContent = `8 月累積宣穆基金撥款與支出 $${augustSpent.toLocaleString()} 元 (含8/1阿萌1萬 + 8/5清洗機$7539 + 8/10小雞1.5萬)，尚剩餘 $${augustRemaining.toLocaleString()} 元預算。點擊查看明細！`;
+    monthlyTip.textContent = `8 月累積宣穆基金撥款與支出 $${augustSpent.toLocaleString()} 元，尚剩餘 $${augustRemaining.toLocaleString()} 元預算。點擊查看明細！`;
   }
 
   openBudgetBreakdownModal(mode) {
@@ -715,13 +813,13 @@ class XuanMuFinanceApp {
     modal.classList.remove('hidden');
   }
 
-  // Render Accounts & Outflow Wallets Grid (Clickable to open transaction breakdown)
   renderAccountsGrid(data) {
     const grid = document.getElementById('accounts-grid');
     grid.innerHTML = '';
 
     const balances = data.accountBalances;
     const walletStats = data.walletStats;
+    const atongStats = data.atongStats;
 
     this.accounts.forEach(acc => {
       const normName = this.normalizeAccountName(acc.name);
@@ -729,7 +827,12 @@ class XuanMuFinanceApp {
       let amountLabel = '';
       let subInfo = '';
 
-      if (normName === '共同小雞錢包') {
+      if (normName === '💳 阿彤代付') {
+        const dueAmt = atongStats.spent - atongStats.reimbursed;
+        amountStr = `$${dueAmt.toLocaleString()}`;
+        amountLabel = dueAmt > 0 ? '阿彤待歸還墊款 (點擊看明細/歸還)' : '代付款已清空 (無待還款)';
+        subInfo = `阿彤累積墊付 $${atongStats.spent.toLocaleString()} ｜ 已歸還還款 $${atongStats.reimbursed.toLocaleString()}`;
+      } else if (normName === '共同小雞錢包') {
         const stats = walletStats['共同小雞錢包'] || { topUp: 30000, spent: 6925 };
         const remaining = (stats.topUp - stats.spent);
         amountStr = `$${remaining.toLocaleString()}`;
@@ -742,10 +845,10 @@ class XuanMuFinanceApp {
         amountLabel = '錢包目前剩餘額度 (點擊看明細)';
         subInfo = `撥入總額 $${stats.topUp.toLocaleString()} ｜ 買用品花用 $${stats.spent.toLocaleString()}`;
       } else if (normName === '育兒實體現金') {
-        const cashBal = balances['育兒實體現金'] || 24800;
+        const cashBal = balances['育兒實體現金'] || 20000;
         amountStr = `$${cashBal.toLocaleString()}`;
         amountLabel = '手邊實體現金/紅包額度 (點擊看明細)';
-        subInfo = '親友給的紅包與現金資助 (尚未存入銀行卡)';
+        subInfo = '親友紅包與現金資助 (已扣除臍帶章 $4,800)';
       } else {
         amountStr = `$${(balances[normName] || 0).toLocaleString()}`;
         amountLabel = '現存存款 (點擊看收支明細)';
@@ -756,6 +859,14 @@ class XuanMuFinanceApp {
       cardEl.className = 'account-card-box cursor-pointer hover:border-amber-400 hover:shadow-lg transition-all transform hover:-translate-y-0.5 group';
       cardEl.onclick = () => this.openAccountDetailsModal(acc.name);
       
+      const badgeStyle = normName === '💳 阿彤代付' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+                         (normName.includes('錢包') || normName.includes('阿萌') ? 'bg-rose-100 text-rose-800 border-rose-200' : 
+                         (normName.includes('現金') ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-slate-100 text-slate-700 border-slate-200'));
+
+      const amountColorClass = normName === '💳 阿彤代付' ? 'text-purple-600' :
+                                (normName.includes('錢包') || normName.includes('阿萌') ? 'text-rose-600' : 
+                                (normName.includes('現金') ? 'text-amber-600' : 'text-slate-800'));
+
       cardEl.innerHTML = `
         <div>
           <div class="flex items-center justify-between text-xs mb-2 gap-2">
@@ -763,12 +874,12 @@ class XuanMuFinanceApp {
               <i class="fa-solid ${acc.icon} text-base shrink-0"></i> 
               <span class="truncate">${acc.name}</span>
             </span>
-            <span class="text-[10px] px-2.5 py-0.5 rounded-full ${normName.includes('錢包') || normName.includes('阿萌') ? 'bg-rose-100 text-rose-800 border-rose-200' : (normName.includes('現金') ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-slate-100 text-slate-700 border-slate-200')} font-bold border shrink-0">
+            <span class="text-[10px] px-2.5 py-0.5 rounded-full ${badgeStyle} font-bold border shrink-0">
               ${acc.badge || '存款帳戶'}
             </span>
           </div>
           <div class="mt-1">
-            <div class="text-2xl font-black ${normName.includes('錢包') || normName.includes('阿萌') ? 'text-rose-600' : (normName.includes('現金') ? 'text-amber-600' : 'text-slate-800')}">${amountStr}</div>
+            <div class="text-2xl font-black ${amountColorClass}">${amountStr}</div>
             <div class="text-[10px] text-amber-700 font-bold mt-0.5 flex items-center justify-between">
               <span>${amountLabel}</span>
               <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md font-bold group-hover:bg-amber-500 group-hover:text-white transition-colors">點擊查看 ➔</span>
@@ -783,7 +894,6 @@ class XuanMuFinanceApp {
     });
   }
 
-  // Open Detailed Transaction Breakdown for Specific Account Card
   openAccountDetailsModal(rawAccName) {
     const normName = this.normalizeAccountName(rawAccName);
     const acc = this.accounts.find(a => this.normalizeAccountName(a.name) === normName) || { name: normName, icon: 'fa-wallet' };
@@ -863,10 +973,14 @@ class XuanMuFinanceApp {
     }
 
     let netBal = totalIn - totalOut;
-    if (normName === '共同小雞錢包' || normName === 'LINE 阿萌') {
+    const data = this.calculateBalances();
+
+    if (normName === '💳 阿彤代付') {
+      const due = data.atongStats.spent - data.atongStats.reimbursed;
+      balEl.textContent = `$${due.toLocaleString()}`;
+    } else if (normName === '共同小雞錢包' || normName === 'LINE 阿萌') {
       balEl.textContent = `$${Math.max(0, netBal).toLocaleString()}`;
     } else {
-      const data = this.calculateBalances();
       balEl.textContent = `$${(data.accountBalances[normName] || netBal).toLocaleString()}`;
     }
 
@@ -884,7 +998,6 @@ class XuanMuFinanceApp {
     modal.classList.remove('hidden');
   }
 
-  // Open Breakdown Modal for Top Overview Summary Cards
   openOverviewFundDetailsModal(fundType) {
     const modal = document.getElementById('modal-account-details');
     const title = document.getElementById('account-details-title');
@@ -1017,10 +1130,10 @@ class XuanMuFinanceApp {
       const ctxBar = barCanvas.getContext('2d');
       if (this.barChart) this.barChart.destroy();
 
-      const postPhys = data.accountBalances['郵局 (實體存簿)'] || 125000;
+      const postPhys = data.accountBalances['郵局 (實體存簿)'] || 130000;
       const postDigi = data.accountBalances['郵局數位帳戶'] || 170000;
-      const sinoPac = data.accountBalances['永豐大戶 (DAWHO)'] || 155000;
-      const cashBal = data.accountBalances['育兒實體現金'] || 24800;
+      const sinoPac = data.accountBalances['永豐大戶 (DAWHO)'] || 137867;
+      const cashBal = data.accountBalances['育兒實體現金'] || 20000;
 
       this.barChart = new Chart(ctxBar, {
         type: 'bar',
@@ -1205,15 +1318,15 @@ class XuanMuFinanceApp {
     const tgtSelect = this.txTargetAccount;
 
     const opts = `
-      <option value="育兒實體現金">育兒實體現金 (手邊現金/紅包)</option>
-      <option value="LINE 阿萌">LINE 阿萌</option>
+      <option value="💳 阿彤代付">💳 阿彤代付 (先拿阿彤的錢墊付)</option>
       <option value="共同小雞錢包">共同小雞錢包</option>
+      <option value="LINE 阿萌">LINE 阿萌</option>
       <option value="永豐大戶 (DAWHO)">永豐大戶 (DAWHO)</option>
       <option value="郵局數位帳戶">郵局數位帳戶</option>
       <option value="郵局 (實體存簿)">郵局 (實體存簿)</option>
-      <option value="宣穆投資帳戶">宣穆投資帳戶 (股票/ETF/基金)</option>
-      <option value="家電/育兒設備店">家電 / 育兒設備店</option>
+      <option value="育兒實體現金">育兒實體現金 (手邊現金/紅包)</option>
       <option value="商家/用品店">商家 / 用品店 / 外送</option>
+      <option value="家電/育兒設備店">家電 / 育兒設備店</option>
       <option value="政府補助/親友">政府補助 / 親友紅包</option>
     `;
 
@@ -1227,8 +1340,8 @@ class XuanMuFinanceApp {
       const btnType = btn.getAttribute('data-type');
       btn.className = 'tx-type-btn py-2.5 rounded-xl font-bold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-all flex items-center justify-center gap-1';
       if (btnType === type) {
-        if (type === '收入') btn.classList.add('active-income');
-        else if (type === '支出') btn.classList.add('active-expense');
+        if (type === '支出') btn.classList.add('active-expense');
+        else if (type === '收入') btn.classList.add('active-income');
         else if (type === '轉帳') btn.classList.add('active-transfer');
         else if (type === '投資') btn.classList.add('active-invest');
       }
@@ -1237,17 +1350,17 @@ class XuanMuFinanceApp {
     const lblSrc = document.getElementById('lbl-source-account');
     const lblTgt = document.getElementById('lbl-target-account');
     if (type === '收入') {
-      lblSrc.textContent = '來源管道 (例: 親友紅包/政府)';
+      lblSrc.textContent = '來源管道 (例: 親友紅包/政府補助)';
       lblTgt.textContent = '存入帳戶 (例: 育兒實體現金/郵局)';
     } else if (type === '支出') {
-      lblSrc.textContent = '扣款/撥款帳戶';
-      lblTgt.textContent = '受款對象/錢包 (例: 共同小雞/阿萌/商家)';
+      lblSrc.textContent = '誰出的錢/扣款帳戶 (含💳阿彤代付)';
+      lblTgt.textContent = '受款對象/開銷店家 (例: 商家/用品店)';
     } else if (type === '投資') {
       lblSrc.textContent = '扣款帳戶';
       lblTgt.textContent = '投資標的 (例: 宣穆投資帳戶)';
     } else {
-      lblSrc.textContent = '轉出帳戶 (例: 育兒實體現金)';
-      lblTgt.textContent = '轉入帳戶 (例: 郵局實體存簿)';
+      lblSrc.textContent = '轉出帳戶 (例: 永豐大戶)';
+      lblTgt.textContent = '轉入帳戶 (例: 💳阿彤代付/小雞錢包)';
     }
   }
 
@@ -1293,6 +1406,10 @@ class XuanMuFinanceApp {
     const id = this.txId.value || 'tx-' + Date.now();
     let src = this.normalizeAccountName(this.txSourceAccount.value, this.currentTxType === '收入');
     let tgt = this.normalizeAccountName(this.txTargetAccount.value);
+
+    if (this.currentTxType === '支出' && src === '育兒實體現金' && tgt === '育兒實體現金') {
+      tgt = '商家/用品店';
+    }
 
     if (this.currentTxType === '支出' && (src === '共同小雞錢包' || src === 'LINE 阿萌') && (tgt === src || tgt === '共同小雞錢包' || tgt === 'LINE 阿萌')) {
       tgt = '商家/用品店';

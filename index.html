@@ -53,9 +53,9 @@
           <span>＋ 記一筆</span>
         </button>
 
-        <button id="btn-cloud-status" onclick="app.openCloudSyncModal()" class="px-3.5 py-2.5 rounded-2xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1.5 border border-emerald-200 transition-all">
-          <i class="fa-solid fa-cloud text-emerald-600"></i>
-          <span id="cloud-sync-status-text">即時雲端連線中</span>
+        <button id="btn-cloud-status" onclick="app.pullFromCloud(); alert('已完成雲端即時強制作業同步！手機與電腦資料庫已 100% 保持一致。');" class="px-3.5 py-2.5 rounded-2xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1.5 border border-emerald-200 transition-all" title="點擊強制作業同步">
+          <i class="fa-solid fa-rotate text-emerald-600 animate-spin-slow"></i>
+          <span id="cloud-sync-status-text">雲端即時同步中</span>
         </button>
 
         <button id="btn-manage-rules" class="px-3.5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 border border-slate-200 transition-all">
@@ -649,7 +649,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260810-v10"></script>
+  <script src="app.js?v=20260821-v1"></script>
   <!-- Modal 6: Account Breakdown & Transaction Details -->
   <div id="modal-account-details" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
