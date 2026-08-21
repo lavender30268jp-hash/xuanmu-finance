@@ -1339,36 +1339,73 @@ class XuanMuFinanceApp {
 
     srcSelect.innerHTML = opts;
     tgtSelect.innerHTML = opts;
+
+    srcSelect.onchange = () => this.autoInferFormDefaults();
+  }
+
+  autoInferFormDefaults() {
+    const type = this.currentTxType;
+    const src = this.normalizeAccountName(this.txSourceAccount.value, type === '收入');
+
+    if (type === '支出') {
+      this.txTargetAccount.value = '商家/用品店';
+      this.txFund.value = '宣穆基金';
+      if (!this.txCategory.value || this.txCategory.value === '轉帳') {
+        this.txCategory.value = '每月開銷';
+      }
+    } else if (type === '收入') {
+      if (src === '政府補助/親友' || src.includes('補助')) {
+        this.txTargetAccount.value = '郵局 (實體存簿)';
+        this.txFund.value = '宣穆戶頭';
+        this.txCategory.value = '固定收入';
+      } else if (src.includes('萌媽')) {
+        this.txTargetAccount.value = '育兒實體現金';
+        this.txFund.value = '其他';
+        this.txCategory.value = '萌媽';
+      } else {
+        this.txTargetAccount.value = '育兒實體現金';
+        this.txFund.value = '宣穆戶頭';
+        this.txCategory.value = '單次津貼';
+      }
+    } else if (type === '轉帳') {
+      if (src === '永豐大戶 (DAWHO)') {
+        this.txTargetAccount.value = '共同小雞錢包';
+        this.txCategory.value = '轉帳';
+        this.txFund.value = '宣穆基金';
+      } else if (src === '郵局數位帳戶') {
+        this.txTargetAccount.value = 'LINE 阿萌';
+        this.txCategory.value = '轉帳';
+        this.txFund.value = '宣穆基金';
+      }
+    }
   }
 
   setModalTxType(type) {
     this.currentTxType = type;
     document.querySelectorAll('.tx-type-btn').forEach(btn => {
       const btnType = btn.getAttribute('data-type');
-      btn.className = 'tx-type-btn py-2.5 rounded-xl font-bold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-all flex items-center justify-center gap-1';
+      btn.className = 'tx-type-btn py-2.5 rounded-xl font-extrabold transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900 border border-transparent';
       if (btnType === type) {
-        if (type === '支出') btn.classList.add('active-expense');
-        else if (type === '收入') btn.classList.add('active-income');
-        else if (type === '轉帳') btn.classList.add('active-transfer');
-        else if (type === '投資') btn.classList.add('active-invest');
+        if (type === '支出') btn.className = 'tx-type-btn py-2.5 rounded-xl font-extrabold transition-all flex items-center justify-center gap-1.5 active-expense bg-white text-rose-700 shadow-sm border border-rose-200';
+        else if (type === '收入') btn.className = 'tx-type-btn py-2.5 rounded-xl font-extrabold transition-all flex items-center justify-center gap-1.5 active-income bg-white text-emerald-700 shadow-sm border border-emerald-200';
+        else if (type === '轉帳') btn.className = 'tx-type-btn py-2.5 rounded-xl font-extrabold transition-all flex items-center justify-center gap-1.5 active-transfer bg-white text-teal-700 shadow-sm border border-teal-200';
       }
     });
 
     const lblSrc = document.getElementById('lbl-source-account');
     const lblTgt = document.getElementById('lbl-target-account');
     if (type === '收入') {
-      lblSrc.textContent = '來源管道 (例: 親友紅包/政府補助)';
-      lblTgt.textContent = '存入帳戶 (例: 育兒實體現金/郵局)';
+      lblSrc.textContent = '收入來源管道 (例: 親友紅包/政府補助/萌媽資助)';
+      lblTgt.textContent = '存入資產帳戶 (例: 郵局存簿/育兒實體現金)';
     } else if (type === '支出') {
-      lblSrc.textContent = '誰出的錢/扣款帳戶 (含💳阿彤代付)';
+      lblSrc.textContent = '誰出的錢 / 付款管道（系統自動設定分類）';
       lblTgt.textContent = '受款對象/開銷店家 (例: 商家/用品店)';
-    } else if (type === '投資') {
-      lblSrc.textContent = '扣款帳戶';
-      lblTgt.textContent = '投資標的 (例: 宣穆投資帳戶)';
     } else {
-      lblSrc.textContent = '轉出帳戶 (例: 永豐大戶)';
-      lblTgt.textContent = '轉入帳戶 (例: 💳阿彤代付/小雞錢包)';
+      lblSrc.textContent = '轉出/撥款帳戶 (例: 永豐大戶/郵局數位)';
+      lblTgt.textContent = '轉入/接收帳戶 (例: 💳阿彤代付/小雞錢包)';
     }
+
+    this.autoInferFormDefaults();
   }
 
   openAddModal() {
