@@ -691,7 +691,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260826-v1"></script>
+  <script src="app.js?v=20260826-v2"></script>
   <!-- Modal 6: Account Breakdown & Transaction Details -->
   <div id="modal-account-details" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
@@ -768,51 +768,33 @@
 
       <div class="p-5 overflow-y-auto space-y-6 text-xs flex-1">
 
-        <!-- Part A: Co-Mingled Bank Account Calculator -->
+        <!-- Part A: Co-Mingled Bank Account Calculator (Multi-Account List) -->
         <div class="p-4.5 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-4">
           <div class="flex items-center justify-between">
             <h4 class="font-extrabold text-amber-900 text-sm flex items-center gap-2">
-              <i class="fa-solid fa-calculator text-amber-600"></i> 🏦 銀行網銀共用帳戶對帳神算
+              <i class="fa-solid fa-calculator text-amber-600"></i> 🏦 跨帳戶網銀對帳與個人資產智算
             </h4>
-            <span class="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">虛擬獨立對帳</span>
+            <span class="text-[10px] bg-amber-200 text-amber-900 px-2.5 py-0.5 rounded-full font-bold">全帳戶同時對帳</span>
           </div>
 
           <p class="text-slate-600 leading-relaxed">
-            如果您的銀行帳戶（例如永豐大戶或郵局）裡面同時存有<b>爸媽自己的錢</b>與<b>李宣穆的育兒金</b>，請選擇帳戶並輸入您網銀 App 目前看到的總金額：
+            請輸入您各個網銀 App 目前顯示的<b>【實際總金額】</b>，系統會同時記住所有帳戶輸入值，並自動扣除宣穆專用金，為您計算出各帳戶與全帳戶合計屬於<b>爸媽自己的個人資金</b>：
           </p>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block font-bold text-slate-700 mb-1">選擇共用帳戶</label>
-              <select id="cm-account-select" onchange="app.updateCoMingledCalculation()" class="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-slate-800 font-extrabold text-xs focus:outline-none focus:border-amber-500">
-                <option value="永豐大戶 (DAWHO)">🏦 永豐大戶 (DAWHO)</option>
-                <option value="郵局 (實體存簿)">✉️ 郵局 (實體存簿)</option>
-                <option value="郵局數位帳戶">📱 郵局數位帳戶</option>
-                <option value="宣穆永豐個人戶 (投資戶)">📈 宣穆永豐個人戶 (投資專戶)</option>
-              </select>
-            </div>
-            <div>
-              <label class="block font-bold text-slate-700 mb-1">您網銀 App 顯示的【實際總金額】</label>
-              <input type="number" id="cm-bank-total-input" placeholder="例如: 250000" oninput="app.updateCoMingledCalculation()" class="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-slate-900 text-sm font-black focus:outline-none focus:border-amber-500">
-            </div>
+          <!-- Dynamic Multi-Account List Container -->
+          <div id="cm-multi-accounts-container" class="space-y-3">
+            <!-- Rendered by JavaScript -->
           </div>
 
-          <!-- Calculation Result Cards -->
-          <div id="cm-result-box" class="grid grid-cols-2 gap-3 pt-2">
-            <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
-              <span class="text-[11px] text-emerald-800 font-extrabold block mb-1">👶 李宣穆專屬育兒金</span>
-              <span id="cm-xuanmu-share" class="text-xl font-black text-emerald-600">$0</span>
-              <span class="text-[10px] text-emerald-700 block mt-1">獨立列管 / 不可挪用</span>
+          <!-- Total Parent Assets Summary Card -->
+          <div class="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl shadow-md space-y-1 mt-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-indigo-100 font-extrabold">👨‍👩‍👧 爸媽個人跨帳戶資產總計 (GRAND TOTAL)</span>
+              <span id="cm-grand-parent-total" class="text-2xl font-black text-white">$0</span>
             </div>
-            <div class="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl">
-              <span class="text-[11px] text-indigo-800 font-extrabold block mb-1">👨‍👩‍👧 爸媽個人可用資產</span>
-              <span id="cm-parent-share" class="text-xl font-black text-indigo-600">$0</span>
-              <span class="text-[10px] text-indigo-700 block mt-1">爸媽個人可自由支配</span>
+            <div class="text-right text-[11px] text-indigo-200">
+              已獨立扣除李宣穆專屬育兒金總額 <b id="cm-grand-xuanmu-total" class="text-emerald-300">$0</b> 元
             </div>
-          </div>
-
-          <div id="cm-advice-tip" class="p-3 bg-white border border-amber-200 rounded-xl font-medium text-slate-600 text-[11px] leading-relaxed">
-            💡 系統建議：只要在網銀收到薪水或有其他存款入帳，直接打開這頁輸入網銀總餘額，即可瞬間分清「誰的錢是多少」！
           </div>
         </div>
 

@@ -1730,36 +1730,87 @@ class XuanMuFinanceApp {
     const dueEl = document.getElementById('cm-atong-due');
     if (dueEl) dueEl.textContent = `$${dueAmt.toLocaleString()}`;
 
-    this.updateCoMingledCalculation();
+    this.renderCoMingledAccountsList();
+    this.updateCoMingledMultiCalculation();
     this.modalCoMingled.classList.remove('hidden');
   }
 
-  updateCoMingledCalculation() {
+  renderCoMingledAccountsList() {
+    const container = document.getElementById('cm-multi-accounts-container');
+    if (!container) return;
+
+    container.innerHTML = '';
     const data = this.calculateBalances();
-    const selectAcc = document.getElementById('cm-account-select')?.value || '永豐大戶 (DAWHO)';
-    const normName = this.normalizeAccountName(selectAcc);
-    const xuanMuLedgerBal = data.accountBalances[normName] || 0;
+    const savedInputs = JSON.parse(localStorage.getItem('xm_cm_inputs')) || {};
 
-    const inputEl = document.getElementById('cm-bank-total-input');
-    const inputVal = Number(inputEl?.value || 0);
+    const coAccounts = [
+      { name: '永豐大戶 (DAWHO)', icon: 'fa-building-columns text-teal-500', bg: 'bg-white border-amber-200' },
+      { name: '郵局 (實體存簿)', icon: 'fa-envelope-open-text text-emerald-500', bg: 'bg-white border-emerald-200' },
+      { name: '郵局數位帳戶', icon: 'fa-mobile-screen-button text-cyan-500', bg: 'bg-white border-cyan-200' },
+      { name: '宣穆永豐個人戶 (投資戶)', icon: 'fa-chart-line text-purple-500', bg: 'bg-white border-purple-200' },
+      { name: '育兒實體現金', icon: 'fa-money-bill-wave text-amber-500', bg: 'bg-white border-amber-200' }
+    ];
 
-    const xuanMuShareEl = document.getElementById('cm-xuanmu-share');
-    const parentShareEl = document.getElementById('cm-parent-share');
-    const adviceEl = document.getElementById('cm-advice-tip');
+    coAccounts.forEach((acc, idx) => {
+      const normName = this.normalizeAccountName(acc.name);
+      const xuanMuLedgerBal = data.accountBalances[normName] || 0;
+      const prevVal = savedInputs[normName] !== undefined ? savedInputs[normName] : '';
 
-    if (xuanMuShareEl) xuanMuShareEl.textContent = `$${xuanMuLedgerBal.toLocaleString()}`;
+      const card = document.createElement('div');
+      card.className = `p-3.5 ${acc.bg} border rounded-2xl space-y-2 shadow-sm`;
+      card.innerHTML = `
+        <div class="flex items-center justify-between font-extrabold text-slate-800 text-xs">
+          <span class="flex items-center gap-1.5"><i class="fa-solid ${acc.icon}"></i> ${normName}</span>
+          <span class="text-[11px] text-slate-500 font-medium">宣穆專用金：<b class="text-emerald-600 font-black">$${xuanMuLedgerBal.toLocaleString()}</b></span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">網銀/實際顯示總金額 (NT$)</label>
+            <input type="number" data-acc="${normName}" class="cm-input-bank w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-black text-slate-900 focus:outline-none focus:border-amber-500" value="${prevVal}" placeholder="請輸入網銀金額..." oninput="app.updateCoMingledMultiCalculation()">
+          </div>
+          <div class="sm:text-right bg-indigo-50/80 p-2 rounded-xl border border-indigo-100 flex sm:block items-center justify-between">
+            <span class="block text-[10px] font-bold text-indigo-700">爸媽個人資金</span>
+            <span id="cm-res-${idx}" class="text-sm font-black text-indigo-600">$0</span>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
 
-    if (inputVal <= 0) {
-      if (parentShareEl) parentShareEl.textContent = '請在左方輸入網銀金額';
-      if (adviceEl) adviceEl.innerHTML = `💡 請在上方的【網銀 App 顯示的實際總金額】輸入您打開網銀 App 看到的總數字，系統將為您瞬間分離爸媽個人資金與宣穆金庫！`;
-    } else {
-      const parentShare = Math.max(0, inputVal - xuanMuLedgerBal);
-      if (parentShareEl) parentShareEl.textContent = `$${parentShare.toLocaleString()}`;
+  updateCoMingledMultiCalculation() {
+    const data = this.calculateBalances();
+    const inputs = document.querySelectorAll('.cm-input-bank');
+    const savedInputs = {};
 
-      if (adviceEl) {
-        adviceEl.innerHTML = `💡 <b>對帳分析結論：</b>【${normName}】網銀總餘額 <b>$${inputVal.toLocaleString()}</b> 元中，含有宣穆專用金 <b>$${xuanMuLedgerBal.toLocaleString()}</b> 元，剩餘 <b>$${parentShare.toLocaleString()}</b> 元為爸媽個人可自由支配資金！`;
+    let totalParentPersonal = 0;
+    let totalXuanMuSpecial = 0;
+
+    inputs.forEach((input, idx) => {
+      const normName = input.getAttribute('data-acc');
+      const valStr = input.value.trim();
+      const xuanMuLedgerBal = data.accountBalances[normName] || 0;
+      totalXuanMuSpecial += xuanMuLedgerBal;
+
+      const resEl = document.getElementById(`cm-res-${idx}`);
+      if (valStr !== '') {
+        const val = Number(valStr);
+        savedInputs[normName] = val;
+        const parentShare = Math.max(0, val - xuanMuLedgerBal);
+        totalParentPersonal += parentShare;
+        if (resEl) resEl.textContent = `$${parentShare.toLocaleString()}`;
+      } else {
+        if (resEl) resEl.textContent = '未輸入網銀金額';
       }
-    }
+    });
+
+    localStorage.setItem('xm_cm_inputs', JSON.stringify(savedInputs));
+
+    const grandParentEl = document.getElementById('cm-grand-parent-total');
+    const grandXuanMuEl = document.getElementById('cm-grand-xuanmu-total');
+
+    if (grandParentEl) grandParentEl.textContent = `$${totalParentPersonal.toLocaleString()}`;
+    if (grandXuanMuEl) grandXuanMuEl.textContent = `$${totalXuanMuSpecial.toLocaleString()}`;
   }
 
   openRulesModal() { this.modalRules.classList.remove('hidden'); }
