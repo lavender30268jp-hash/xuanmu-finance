@@ -1796,11 +1796,23 @@ class XuanMuFinanceApp {
       if (valStr !== '') {
         const val = Number(valStr);
         savedInputs[normName] = val;
-        const parentShare = Math.max(0, val - xuanMuLedgerBal);
+        const parentShare = val - xuanMuLedgerBal; // Allow negative value!
         totalParentPersonal += parentShare;
-        if (resEl) resEl.textContent = `$${parentShare.toLocaleString()}`;
+
+        if (resEl) {
+          if (parentShare < 0) {
+            resEl.className = 'text-sm font-black text-rose-600';
+            resEl.textContent = `-$${Math.abs(parentShare).toLocaleString()}`;
+          } else {
+            resEl.className = 'text-sm font-black text-indigo-600';
+            resEl.textContent = `$${parentShare.toLocaleString()}`;
+          }
+        }
       } else {
-        if (resEl) resEl.textContent = '未輸入網銀金額';
+        if (resEl) {
+          resEl.className = 'text-sm font-black text-slate-400';
+          resEl.textContent = '未輸入網銀金額';
+        }
       }
     });
 
@@ -1809,7 +1821,15 @@ class XuanMuFinanceApp {
     const grandParentEl = document.getElementById('cm-grand-parent-total');
     const grandXuanMuEl = document.getElementById('cm-grand-xuanmu-total');
 
-    if (grandParentEl) grandParentEl.textContent = `$${totalParentPersonal.toLocaleString()}`;
+    if (grandParentEl) {
+      if (totalParentPersonal < 0) {
+        grandParentEl.className = 'text-2xl font-black text-rose-300';
+        grandParentEl.textContent = `-$${Math.abs(totalParentPersonal).toLocaleString()}`;
+      } else {
+        grandParentEl.className = 'text-2xl font-black text-white';
+        grandParentEl.textContent = `$${totalParentPersonal.toLocaleString()}`;
+      }
+    }
     if (grandXuanMuEl) grandXuanMuEl.textContent = `$${totalXuanMuSpecial.toLocaleString()}`;
   }
 
