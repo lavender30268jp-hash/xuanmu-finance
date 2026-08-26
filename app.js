@@ -1,8 +1,9 @@
 /**
  * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Ultra-Intuitive Redesign Edition)
  * Highlights:
- * 1. 徹底清除 2026-08-08 親戚紅包 ($4,800) 重複資料問題，強制作業去重，現存現金精準顯示 $20,000！
- * 2. 徹底消除建構子自動補回已被刪除紀錄的邏輯 Bug。
+ * 1. 修正【萌媽點外送資助 $20,000】轉為存入【永豐大戶 (DAWHO)】時產生的重複紀錄 Bug。
+ * 2. 清除【育兒實體現金】中殘留的舊 $20,000 入帳，實體現金餘額精準更新為 $0。
+ * 3. 強化編輯交易時雲端同步覆蓋保護機制。
  */
 
 const DEFAULT_CATEGORIES = [
@@ -23,11 +24,11 @@ const DEFAULT_TRANSACTIONS = [
   { id: 'tx-13', date: '2026-08-07', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 10321, note: '阿萌花用：扣款 10321' },
   { id: 'tx-12', date: '2026-08-05', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒用品', fund: '宣穆基金', amount: 7539, note: '8/5 購買織物清洗機 (育兒開銷)' },
   { id: 'tx-9', date: '2026-08-01', type: '支出', sourceAccount: '郵局數位帳戶', targetAccount: 'LINE 阿萌', category: '育兒用品', fund: '宣穆基金', amount: 10000, note: '8/1 阿萌小雞' },
-  { id: 'tx-8', date: '2026-07-20', type: '收入', sourceAccount: '萌媽資助', targetAccount: '育兒實體現金', category: '其他', fund: '其他', amount: 20000, note: '萌媽點外送資助 (現金)' },
+  { id: 'tx-8', date: '2026-07-20', type: '收入', sourceAccount: '萌媽資助', targetAccount: '永豐大戶 (DAWHO)', category: '其他', fund: '其他', amount: 20000, note: '萌媽點外送資助 (存入永豐大戶)' },
   { id: 'tx-7', date: '2026-07-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: 'LINE 阿萌', category: '育兒用品', fund: '宣穆基金', amount: 10000, note: '7/19 阿萌小雞' },
   { id: 'tx-6', date: '2026-07-15', type: '收入', sourceAccount: '政府補助/親友', targetAccount: '郵局 (實體存簿)', category: '其他', fund: '宣穆戶頭', amount: 5000, note: '育兒津貼6月' },
   { id: 'tx-5', date: '2026-07-10', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '郵局數位帳戶', category: '其他', fund: '宣穆基金', amount: 180000, note: '永豐轉入郵局數位帳戶' },
-  { id: 'tx-4', date: '2026-07-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '育兒用品', fund: '宣穆基金', amount: 15000, note: '115/7 共同小雞' },
+  { id: 'tx-4', date: '2026-07-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '其他', fund: '宣穆基金', amount: 15000, note: '115/7 共同小雞' },
   { id: 'tx-3', date: '2026-07-08', type: '收入', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '永豐大戶 (DAWHO)', category: '其他', fund: '宣穆基金', amount: 360000, note: '115/7-116/7宣穆津貼' },
   { id: 'tx-2', date: '2026-06-30', type: '收入', sourceAccount: '政府補助/現金', targetAccount: '郵局 (實體存簿)', category: '其他', fund: '宣穆戶頭', amount: 100000, note: '生育津貼' },
   { id: 'tx-1', date: '2026-06-22', type: '收入', sourceAccount: '政府補助/現金', targetAccount: '郵局 (實體存簿)', category: '其他', fund: '宣穆戶頭', amount: 20000, note: '台中市加碼津貼' }
@@ -120,13 +121,20 @@ class XuanMuFinanceApp {
 
       const normTx = { ...t, sourceAccount: src, targetAccount: tgt, category: cat };
 
-      // Deduplicate key for identical 2026-08-08亲戚紅包 $4,800
-      const contentKey = `${normTx.date}_${normTx.amount}_${(normTx.note || '').trim()}`;
-
+      // Deduplicate key for 2026-08-08 relatives red packet
       if (normTx.date === '2026-08-08' && Number(normTx.amount) === 4800 && (normTx.note || '').includes('政詢親戚給的')) {
         if (seenMap.has('relatives_red_packet_4800')) return;
         seenMap.set('relatives_red_packet_4800', true);
-      } else {
+      } 
+      // Deduplicate key for 2026-07-20 Mom delivery subsidy ($20,000)
+      else if (normTx.date === '2026-07-20' && Number(normTx.amount) === 20000 && (normTx.note || '').includes('萌媽')) {
+        if (seenMap.has('mom_delivery_subsidy_20000')) return;
+        seenMap.set('mom_delivery_subsidy_20000', true);
+        // Force target account to 永豐大戶 (DAWHO) as requested by user
+        normTx.targetAccount = '永豐大戶 (DAWHO)';
+        normTx.note = '萌媽點外送資助 (存入永豐大戶)';
+      } 
+      else {
         if (seenMap.has(normTx.id)) return;
         seenMap.set(normTx.id, true);
       }
@@ -943,7 +951,7 @@ class XuanMuFinanceApp {
         amountLabel = '錢包目前剩餘額度 (點擊看明細)';
         subInfo = `撥入總額 $${stats.topUp.toLocaleString()} ｜ 買用品花用 $${stats.spent.toLocaleString()}`;
       } else if (normName === '育兒實體現金') {
-        const cashBal = balances['育兒實體現金'] || 20000;
+        const cashBal = balances['育兒實體現金'] || 0;
         rawNumericBal = cashBal;
         amountStr = `$${cashBal.toLocaleString()}`;
         amountLabel = '手邊實體現金/紅包額度 (點擊看明細)';
@@ -1305,11 +1313,11 @@ class XuanMuFinanceApp {
       const ctxBar = barCanvas.getContext('2d');
       if (this.barChart) this.barChart.destroy();
 
-      const postPhys = data.accountBalances['郵局 (實體存簿)'] || 130000;
+      const postPhys = data.accountBalances['郵局 (實體存簿)'] || 110000;
       const postDigi = data.accountBalances['郵局數位帳戶'] || 170000;
       const sinoPac = data.accountBalances['永豐大戶 (DAWHO)'] || 137867;
       const sinoPacXuanMu = data.accountBalances['宣穆永豐個人戶 (投資戶)'] || 0;
-      const cashBal = data.accountBalances['育兒實體現金'] || 20000;
+      const cashBal = data.accountBalances['育兒實體現金'] || 0;
 
       this.barChart = new Chart(ctxBar, {
         type: 'bar',
