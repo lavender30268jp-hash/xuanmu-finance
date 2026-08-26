@@ -186,6 +186,7 @@ class XuanMuFinanceApp {
     this.modalCloudSync = document.getElementById('modal-cloud-sync');
     this.modalQuickPresets = document.getElementById('modal-quick-presets');
     this.modalAccountDetails = document.getElementById('modal-account-details');
+    this.modalCoMingled = document.getElementById('modal-comingled');
 
     this.formTx = document.getElementById('form-transaction');
     this.txId = document.getElementById('tx-id');
@@ -1721,6 +1722,44 @@ class XuanMuFinanceApp {
     }).catch(() => {
       prompt('請複製以下戶外連線網址：', link);
     });
+  }
+
+  openCoMingledModal() {
+    const data = this.calculateBalances();
+    const dueAmt = data.atongStats.spent - data.atongStats.reimbursed;
+    const dueEl = document.getElementById('cm-atong-due');
+    if (dueEl) dueEl.textContent = `$${dueAmt.toLocaleString()}`;
+
+    this.updateCoMingledCalculation();
+    this.modalCoMingled.classList.remove('hidden');
+  }
+
+  updateCoMingledCalculation() {
+    const data = this.calculateBalances();
+    const selectAcc = document.getElementById('cm-account-select')?.value || '永豐大戶 (DAWHO)';
+    const normName = this.normalizeAccountName(selectAcc);
+    const xuanMuLedgerBal = data.accountBalances[normName] || 0;
+
+    const inputEl = document.getElementById('cm-bank-total-input');
+    const inputVal = Number(inputEl?.value || 0);
+
+    const xuanMuShareEl = document.getElementById('cm-xuanmu-share');
+    const parentShareEl = document.getElementById('cm-parent-share');
+    const adviceEl = document.getElementById('cm-advice-tip');
+
+    if (xuanMuShareEl) xuanMuShareEl.textContent = `$${xuanMuLedgerBal.toLocaleString()}`;
+
+    if (inputVal <= 0) {
+      if (parentShareEl) parentShareEl.textContent = '請在左方輸入網銀金額';
+      if (adviceEl) adviceEl.innerHTML = `💡 請在上方的【網銀 App 顯示的實際總金額】輸入您打開網銀 App 看到的總數字，系統將為您瞬間分離爸媽個人資金與宣穆金庫！`;
+    } else {
+      const parentShare = Math.max(0, inputVal - xuanMuLedgerBal);
+      if (parentShareEl) parentShareEl.textContent = `$${parentShare.toLocaleString()}`;
+
+      if (adviceEl) {
+        adviceEl.innerHTML = `💡 <b>對帳分析結論：</b>【${normName}】網銀總餘額 <b>$${inputVal.toLocaleString()}</b> 元中，含有宣穆專用金 <b>$${xuanMuLedgerBal.toLocaleString()}</b> 元，剩餘 <b>$${parentShare.toLocaleString()}</b> 元為爸媽個人可自由支配資金！`;
+      }
+    }
   }
 
   openRulesModal() { this.modalRules.classList.remove('hidden'); }

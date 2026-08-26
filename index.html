@@ -53,6 +53,11 @@
           <span>＋ 記一筆</span>
         </button>
 
+        <button onclick="app.openCoMingledModal()" class="px-3.5 py-2.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-extrabold flex items-center gap-1.5 border border-amber-200 transition-all shadow-sm">
+          <i class="fa-solid fa-scale-balanced text-amber-600"></i>
+          <span>⚖️ 帳戶對帳與代付智算</span>
+        </button>
+
         <button id="btn-cloud-status" onclick="app.pullFromCloud(); alert('已完成雲端即時強制作業同步！手機與電腦資料庫已 100% 保持一致。');" class="px-3.5 py-2.5 rounded-2xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1.5 border border-emerald-200 transition-all" title="點擊強制作業同步">
           <i class="fa-solid fa-rotate text-emerald-600 animate-spin-slow"></i>
           <span id="cloud-sync-status-text">雲端即時同步中</span>
@@ -686,7 +691,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260821-v9"></script>
+  <script src="app.js?v=20260826-v1"></script>
   <!-- Modal 6: Account Breakdown & Transaction Details -->
   <div id="modal-account-details" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
@@ -740,6 +745,101 @@
         <button onclick="app.closeModal(document.getElementById('modal-account-details'))" class="px-4 py-2 rounded-xl bg-slate-200 text-slate-700 font-extrabold hover:bg-slate-300 text-xs shrink-0">
           關閉
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 7: Co-Mingled Bank Account Splitter & Parent Outlay Hub -->
+  <div id="modal-comingled" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl w-full max-w-xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
+      
+      <!-- Header -->
+      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+        <div>
+          <h3 class="text-base font-black flex items-center gap-2">
+            <i class="fa-solid fa-scale-balanced text-amber-200"></i> 共用帳戶對帳與代付智算神器
+          </h3>
+          <p class="text-xs text-amber-100 mt-0.5 font-medium">一眼分辨網銀裡「宣穆的錢」vs「爸媽自己的錢」，並一鍵清算代付款</p>
+        </div>
+        <button onclick="app.closeModal(document.getElementById('modal-comingled'))" class="w-8 h-8 rounded-full bg-white/20 text-white hover:bg-white/30 flex items-center justify-center transition-colors">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-6 text-xs flex-1">
+
+        <!-- Part A: Co-Mingled Bank Account Calculator -->
+        <div class="p-4.5 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-4">
+          <div class="flex items-center justify-between">
+            <h4 class="font-extrabold text-amber-900 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-calculator text-amber-600"></i> 🏦 銀行網銀共用帳戶對帳神算
+            </h4>
+            <span class="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">虛擬獨立對帳</span>
+          </div>
+
+          <p class="text-slate-600 leading-relaxed">
+            如果您的銀行帳戶（例如永豐大戶或郵局）裡面同時存有<b>爸媽自己的錢</b>與<b>李宣穆的育兒金</b>，請選擇帳戶並輸入您網銀 App 目前看到的總金額：
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">選擇共用帳戶</label>
+              <select id="cm-account-select" onchange="app.updateCoMingledCalculation()" class="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-slate-800 font-extrabold text-xs focus:outline-none focus:border-amber-500">
+                <option value="永豐大戶 (DAWHO)">🏦 永豐大戶 (DAWHO)</option>
+                <option value="郵局 (實體存簿)">✉️ 郵局 (實體存簿)</option>
+                <option value="郵局數位帳戶">📱 郵局數位帳戶</option>
+                <option value="宣穆永豐個人戶 (投資戶)">📈 宣穆永豐個人戶 (投資專戶)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">您網銀 App 顯示的【實際總金額】</label>
+              <input type="number" id="cm-bank-total-input" placeholder="例如: 250000" oninput="app.updateCoMingledCalculation()" class="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-slate-900 text-sm font-black focus:outline-none focus:border-amber-500">
+            </div>
+          </div>
+
+          <!-- Calculation Result Cards -->
+          <div id="cm-result-box" class="grid grid-cols-2 gap-3 pt-2">
+            <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl">
+              <span class="text-[11px] text-emerald-800 font-extrabold block mb-1">👶 李宣穆專屬育兒金</span>
+              <span id="cm-xuanmu-share" class="text-xl font-black text-emerald-600">$0</span>
+              <span class="text-[10px] text-emerald-700 block mt-1">獨立列管 / 不可挪用</span>
+            </div>
+            <div class="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl">
+              <span class="text-[11px] text-indigo-800 font-extrabold block mb-1">👨‍👩‍👧 爸媽個人可用資產</span>
+              <span id="cm-parent-share" class="text-xl font-black text-indigo-600">$0</span>
+              <span class="text-[10px] text-indigo-700 block mt-1">爸媽個人可自由支配</span>
+            </div>
+          </div>
+
+          <div id="cm-advice-tip" class="p-3 bg-white border border-amber-200 rounded-xl font-medium text-slate-600 text-[11px] leading-relaxed">
+            💡 系統建議：只要在網銀收到薪水或有其他存款入帳，直接打開這頁輸入網銀總餘額，即可瞬間分清「誰的錢是多少」！
+          </div>
+        </div>
+
+        <!-- Part B: Parent Out-of-Pocket / Credit Card Settlement -->
+        <div class="p-4.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-extrabold text-purple-900 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-credit-card text-purple-600"></i> 💳 爸媽個人信用卡 / 現金代付智算歸還
+            </h4>
+            <span class="text-[10px] bg-purple-200 text-purple-900 px-2 py-0.5 rounded-full font-bold">代付清算</span>
+          </div>
+
+          <p class="text-slate-600 leading-relaxed">
+            當您拿<b>自己的信用卡</b>或<b>個人錢包現金</b>先幫宣穆付費時，系統會自動累積宣穆欠您的款項。
+          </p>
+
+          <div class="p-4 bg-white border border-purple-200 rounded-2xl flex items-center justify-between">
+            <div>
+              <span class="text-[11px] text-slate-500 font-bold block">目前【阿彤待歸還墊付款項】總額</span>
+              <span id="cm-atong-due" class="text-2xl font-black text-purple-700">$0</span>
+            </div>
+            <button onclick="app.triggerQuickPreset('qp-reimburse'); app.closeModal(document.getElementById('modal-comingled'));" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition-all flex items-center gap-1.5">
+              <i class="fa-solid fa-hand-holding-dollar"></i> 💸 一鍵劃撥歸還
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
