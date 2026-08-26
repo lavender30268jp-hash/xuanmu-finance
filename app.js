@@ -914,38 +914,63 @@ class XuanMuFinanceApp {
       let amountStr = '';
       let amountLabel = '';
       let subInfo = '';
+      let rawNumericBal = 0;
 
       if (normName === '💳 阿彤代付') {
         const dueAmt = atongStats.spent - atongStats.reimbursed;
+        rawNumericBal = dueAmt;
         amountStr = `$${dueAmt.toLocaleString()}`;
         amountLabel = dueAmt > 0 ? '阿彤待歸還墊款 (點擊看明細/歸還)' : '代付款已清空 (無待還款)';
         subInfo = `阿彤累積墊付 $${atongStats.spent.toLocaleString()} ｜ 已歸還還款 $${atongStats.reimbursed.toLocaleString()}`;
       } else if (normName === '宣穆永豐個人戶 (投資戶)') {
         const bal = balances['宣穆永豐個人戶 (投資戶)'] || 0;
+        rawNumericBal = bal;
         amountStr = `$${bal.toLocaleString()}`;
         amountLabel = '宣穆個人投資積蓄帳戶 (點擊看明細)';
         subInfo = '宣穆個人開立之永豐獨立戶頭，作為未來股票/ETF與積蓄專用';
       } else if (normName === '共同小雞錢包') {
         const stats = walletStats['共同小雞錢包'] || { topUp: 30000, spent: 6925 };
         const remaining = (stats.topUp - stats.spent);
+        rawNumericBal = remaining;
         amountStr = `$${remaining.toLocaleString()}`;
         amountLabel = '錢包目前剩餘額度 (點擊看明細)';
         subInfo = `撥入總額 $${stats.topUp.toLocaleString()} ｜ 買用品花用 $${stats.spent.toLocaleString()}`;
       } else if (normName === 'LINE 阿萌') {
         const stats = walletStats['LINE 阿萌'] || { topUp: 20000, spent: 10321 };
         const remaining = (stats.topUp - stats.spent);
+        rawNumericBal = remaining;
         amountStr = `$${remaining.toLocaleString()}`;
         amountLabel = '錢包目前剩餘額度 (點擊看明細)';
         subInfo = `撥入總額 $${stats.topUp.toLocaleString()} ｜ 買用品花用 $${stats.spent.toLocaleString()}`;
       } else if (normName === '育兒實體現金') {
         const cashBal = balances['育兒實體現金'] || 20000;
+        rawNumericBal = cashBal;
         amountStr = `$${cashBal.toLocaleString()}`;
         amountLabel = '手邊實體現金/紅包額度 (點擊看明細)';
         subInfo = '親友紅包與現金資助 (已扣除臍帶章 $4,800)';
       } else {
-        amountStr = `$${(balances[normName] || 0).toLocaleString()}`;
+        const bal = balances[normName] || 0;
+        rawNumericBal = bal;
+        amountStr = `$${bal.toLocaleString()}`;
         amountLabel = '現存存款 (點擊看收支明細)';
         subInfo = acc.note || '';
+      }
+
+      let amountColorClass = 'text-slate-800';
+      if (rawNumericBal < 0) {
+        amountColorClass = 'text-rose-600'; // Only RED when balance is truly negative!
+      } else {
+        if (normName === '💳 阿彤代付') {
+          amountColorClass = 'text-purple-600';
+        } else if (normName.includes('投資')) {
+          amountColorClass = 'text-indigo-600';
+        } else if (normName.includes('錢包') || normName.includes('阿萌')) {
+          amountColorClass = 'text-emerald-600'; // Positive wallet balance displays in Emerald Green!
+        } else if (normName.includes('現金')) {
+          amountColorClass = 'text-amber-600';
+        } else {
+          amountColorClass = 'text-slate-800';
+        }
       }
 
       const cardEl = document.createElement('div');
@@ -954,13 +979,8 @@ class XuanMuFinanceApp {
       
       const badgeStyle = normName === '💳 阿彤代付' ? 'bg-purple-100 text-purple-800 border-purple-200' :
                          (normName.includes('投資') ? 'bg-indigo-100 text-indigo-800 border-indigo-200' :
-                         (normName.includes('錢包') || normName.includes('阿萌') ? 'bg-rose-100 text-rose-800 border-rose-200' : 
+                         (normName.includes('錢包') || normName.includes('阿萌') ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 
                          (normName.includes('現金') ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-slate-100 text-slate-700 border-slate-200')));
-
-      const amountColorClass = normName === '💳 阿彤代付' ? 'text-purple-600' :
-                                (normName.includes('投資') ? 'text-indigo-600' :
-                                (normName.includes('錢包') || normName.includes('阿萌') ? 'text-rose-600' : 
-                                (normName.includes('現金') ? 'text-amber-600' : 'text-slate-800')));
 
       cardEl.innerHTML = `
         <div>
