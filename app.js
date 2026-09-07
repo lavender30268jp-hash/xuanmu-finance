@@ -264,16 +264,18 @@ class XuanMuFinanceApp {
         quickPresets: this.quickPresets
       };
       
+      // 1. Local tunnel sync
       await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       }).catch(() => {});
 
-      await fetch(`https://api.npoint.io/c1e345e5d36e2f4762e8`, {
-        method: 'POST',
+      // 2. Global Restful-API Cloud Engine
+      await fetch('https://api.restful-api.dev/objects/ff808181a067127101a07b0e46af3212', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ name: 'xuanmu-finance-sync', data: payload })
       }).catch(() => {});
       
       const statusEl = document.getElementById('cloud-sync-status-text');
@@ -283,31 +285,100 @@ class XuanMuFinanceApp {
 
   async pullFromCloud(isSilent = false) {
     try {
-      let res = await fetch('/api/sync').then(r => r.json()).catch(() => null);
-      if (!res || !res.transactions) {
-        res = await fetch(`https://api.npoint.io/c1e345e5d36e2f4762e8`).then(r => r.json()).catch(() => null);
+      let payload = null;
+      let resLocal = await fetch('/api/sync').then(r => r.json()).catch(() => null);
+      if (resLocal && resLocal.transactions && Array.isArray(resLocal.transactions)) {
+        payload = resLocal;
+      } else {
+        let resRestful = await fetch('https://api.restful-api.dev/objects/ff808181a067127101a07b0e46af3212').then(r => r.json()).catch(() => null);
+        if (resRestful && resRestful.data && resRestful.data.transactions) {
+          payload = resRestful.data;
+        }
       }
 
-      if (res && res.transactions && Array.isArray(res.transactions)) {
-        if (!isSilent || res.transactions.length >= this.transactions.length || res.updatedAt !== this.lastUpdatedAt) {
-          this.lastUpdatedAt = res.updatedAt || new Date().toISOString();
+      if (payload && payload.transactions && Array.isArray(payload.transactions)) {
+        const mergedTxs = this.mergeTransactions(this.transactions, payload.transactions);
+        const hasNewData = mergedTxs.length > this.transactions.length || payload.updatedAt !== this.lastUpdatedAt;
+
+        if (!isSilent || hasNewData) {
+          this.lastUpdatedAt = payload.updatedAt || new Date().toISOString();
           localStorage.setItem('xm_last_updated_at', this.lastUpdatedAt);
           
-          if (res.appTitle) this.appTitle = res.appTitle;
-          if (res.categories && Array.isArray(res.categories)) this.categories = res.categories;
+          if (payload.appTitle) this.appTitle = payload.appTitle;
+          if (payload.categories && Array.isArray(payload.categories)) this.categories = payload.categories;
 
-          this.transactions = this.deduplicateTransactions(res.transactions);
+          this.transactions = this.deduplicateTransactions(mergedTxs);
             
-          if (res.accounts) this.accounts = res.accounts;
-          if (res.quickPresets) this.quickPresets = res.quickPresets;
+          if (payload.accounts) this.accounts = payload.accounts;
+          if (payload.quickPresets) this.quickPresets = payload.quickPresets;
           
           this.render();
           
           const statusEl = document.getElementById('cloud-sync-status-text');
-          if (statusEl) statusEl.textContent = `已即時同步最新資料 (${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})})`;
+          if (statusEl) statusEl.textContent = `已成功同步最新資料 (${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})})`;
         }
       }
     } catch (e) {}
+  }
+
+  mergeTransactions(localTxs, cloudTxs) {
+    const txMap = new Map();
+    (localTxs || []).forEach(t => {
+      if (t && t.id) txMap.set(t.id, t);
+    });
+    (cloudTxs || []).forEach(t => {
+      if (t && t.id) {
+        txMap.set(t.id, t);
+      }
+    });
+    return Array.from(txMap.values());
+  }
+
+  exportDataJSON() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+      appTitle: this.appTitle,
+      categories: this.categories,
+      transactions: this.transactions,
+      accounts: this.accounts,
+      quickPresets: this.quickPresets,
+      updatedAt: new Date().toISOString()
+    }, null, 2));
+    const dlAnchorElem = document.createElement('a');
+    dlAnchorElem.setAttribute("href", dataStr);
+    dlAnchorElem.setAttribute("download", `xuanmu_finance_backup_${new Date().toISOString().split('T')[0]}.json`);
+    dlAnchorElem.click();
+  }
+
+  importDataJSON() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const imported = JSON.parse(event.target.result);
+          if (imported && imported.transactions && Array.isArray(imported.transactions)) {
+            if (imported.appTitle) this.appTitle = imported.appTitle;
+            if (imported.categories) this.categories = imported.categories;
+            this.transactions = this.deduplicateTransactions(this.mergeTransactions(this.transactions, imported.transactions));
+            if (imported.accounts) this.accounts = imported.accounts;
+            if (imported.quickPresets) this.quickPresets = imported.quickPresets;
+            this.render();
+            this.saveState();
+            alert(`成功匯入 ${imported.transactions.length} 筆交易紀錄！`);
+          } else {
+            alert('匯入失敗：JSON 格式不符。');
+          }
+        } catch (err) {
+          alert('解析 JSON 檔案失敗。');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   }
 
   calculateBalances() {

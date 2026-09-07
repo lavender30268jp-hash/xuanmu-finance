@@ -681,6 +681,25 @@
           </div>
         </div>
 
+        <!-- Manual Sync & Import/Export Section -->
+        <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-2">
+          <div class="font-extrabold text-indigo-900 text-sm flex items-center justify-between">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-rotate text-indigo-600"></i> 🔄 強制雙向同步與資料備份</span>
+            <span id="cloud-sync-status-text" class="text-[10px] text-indigo-600 font-bold">已連線</span>
+          </div>
+          <button onclick="app.pullFromCloud(); alert('已向雲端連線同步最新數據！');" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-2">
+            <i class="fa-solid fa-arrows-rotate"></i> 🔄 立即同步雲端最新 9 月資料
+          </button>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button onclick="app.exportDataJSON()" class="py-2 bg-white border border-indigo-200 text-indigo-800 font-bold hover:bg-indigo-100 rounded-xl text-xs">
+              📥 備份匯出 JSON
+            </button>
+            <button onclick="app.importDataJSON()" class="py-2 bg-white border border-indigo-200 text-indigo-800 font-bold hover:bg-indigo-100 rounded-xl text-xs">
+              📤 匯入 JSON 資料
+            </button>
+          </div>
+        </div>
+
         <!-- Local Wi-Fi Link -->
         <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-1">
           <div class="font-bold text-slate-700 text-xs">🏠 家中 Wi-Fi 備用網址</div>
@@ -691,7 +710,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260826-v5"></script>
+  <script src="app.js?v=20260907-v1"></script>
   <!-- Modal 6: Account Breakdown & Transaction Details -->
   <div id="modal-account-details" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
