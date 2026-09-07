@@ -1,9 +1,9 @@
 /**
- * 李宣穆育兒資金與開銷控管系統 - Core Application Engine (Ultra-Intuitive Redesign Edition)
+ * 李宣穆育兒資金與開銷控管系統 - Core Application Engine
  * Highlights:
- * 1. 修正【萌媽點外送資助 $20,000】轉為存入【永豐大戶 (DAWHO)】時產生的重複紀錄 Bug。
- * 2. 清除【育兒實體現金】中殘留的舊 $20,000 入帳，實體現金餘額精準更新為 $0。
- * 3. 強化編輯交易時雲端同步覆蓋保護機制。
+ * 1. 完整包含 2026 年 8 月與 9 月最新記帳紀錄（包含 9/5 郵局歸還 $7,421、9/4 借給阿萌 $30,000、9/1 結算 $10,172 與 $3,013、8/31 津貼 $5,000、8/26 四筆開戶紀念 $2,770, $2,012, $613, $2,026）。
+ * 2. 修正郵局轉帳至永豐大戶時，資金歸屬被強迫鎖定為「宣穆投資」的 Bug，允許自由選擇「宣穆基金」。
+ * 3. Restful-API 雲端資料庫同步引擎與 JSON 備份功能。
  */
 
 const DEFAULT_CATEGORIES = [
@@ -13,6 +13,17 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const DEFAULT_TRANSACTIONS = [
+  { id: 'tx-31', date: '2026-09-05', type: '轉帳', sourceAccount: '郵局 (實體存簿)', targetAccount: '永豐大戶 (DAWHO)', category: '其他', fund: '宣穆基金', amount: 7421, note: '永豐先付，轉帳歸還' },
+  { id: 'tx-30', date: '2026-09-04', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: 'LINE 阿萌', category: '其他', fund: '宣穆基金', amount: 30000, note: '借給阿萌' },
+  { id: 'tx-29', date: '2026-09-01', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 3013, note: '8月底統計' },
+  { id: 'tx-28', date: '2026-09-01', type: '支出', sourceAccount: '共同小雞錢包', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 10172, note: '8月份結算' },
+  { id: 'tx-27', date: '2026-08-31', type: '收入', sourceAccount: '政府補助/親友', targetAccount: '郵局 (實體存簿)', category: '其他', fund: '宣穆戶頭', amount: 5000, note: '8月育兒津貼' },
+  { id: 'tx-26', date: '2026-08-26', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '宣穆永豐個人戶 (投資戶)', category: '其他', fund: '宣穆投資', amount: 2770, note: '開戶紀念體重' },
+  { id: 'tx-25', date: '2026-08-26', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '宣穆永豐個人戶 (投資戶)', category: '其他', fund: '宣穆投資', amount: 2012, note: '開戶紀念' },
+  { id: 'tx-24', date: '2026-08-26', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '宣穆永豐個人戶 (投資戶)', category: '其他', fund: '宣穆投資', amount: 613, note: '開戶紀念' },
+  { id: 'tx-23', date: '2026-08-26', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '宣穆永豐個人戶 (投資戶)', category: '其他', fund: '宣穆投資', amount: 2026, note: '開戶紀念' },
+  { id: 'tx-22', date: '2026-08-20', type: '轉帳', sourceAccount: '郵局數位帳戶', targetAccount: '共同小雞錢包', category: '其他', fund: '宣穆基金', amount: 3000, note: '領錢' },
+  { id: 'tx-22-fee', date: '2026-08-20', type: '支出', sourceAccount: '郵局數位帳戶', targetAccount: '金融機構/手續費', category: '其他', fund: '宣穆基金', amount: 5, note: '跨行/提款手續費 $5 (領錢)' },
   { id: 'tx-21', date: '2026-08-20', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '醫療費用', fund: '宣穆基金', amount: 4000, note: '腸病毒疫苗第一劑' },
   { id: 'tx-20', date: '2026-08-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 3326, note: '織物清洗機運費' },
   { id: 'tx-19', date: '2026-08-18', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '醫療費用', fund: '宣穆基金', amount: 1900, note: '自費預防針（輪狀病毒...）' },
@@ -57,14 +68,15 @@ class XuanMuFinanceApp {
     this.appTitle = localStorage.getItem('xm_app_title') || '小萌馬金庫';
     this.categories = JSON.parse(localStorage.getItem('xm_categories')) || DEFAULT_CATEGORIES;
     
-    // Load local storage
+    // Always merge default transactions with local storage
     let rawTxs = JSON.parse(localStorage.getItem('xm_transactions'));
     if (!rawTxs || !Array.isArray(rawTxs) || rawTxs.length === 0) {
       rawTxs = DEFAULT_TRANSACTIONS;
+    } else {
+      rawTxs = this.mergeTransactions(DEFAULT_TRANSACTIONS, rawTxs);
     }
 
     this.transactions = this.deduplicateTransactions(rawTxs);
-
     this.accounts = JSON.parse(localStorage.getItem('xm_accounts')) || DEFAULT_ACCOUNTS;
     
     if (!this.accounts.some(a => a.name === '宣穆永豐個人戶 (投資戶)')) {
@@ -95,7 +107,7 @@ class XuanMuFinanceApp {
     this.render();
 
     this.pullFromCloud();
-    setInterval(() => this.pullFromCloud(true), 2500);
+    setInterval(() => this.pullFromCloud(true), 3000);
 
     window.addEventListener('focus', () => this.pullFromCloud());
   }
@@ -130,7 +142,6 @@ class XuanMuFinanceApp {
       else if (normTx.date === '2026-07-20' && Number(normTx.amount) === 20000 && (normTx.note || '').includes('萌媽')) {
         if (seenMap.has('mom_delivery_subsidy_20000')) return;
         seenMap.set('mom_delivery_subsidy_20000', true);
-        // Force target account to 永豐大戶 (DAWHO) as requested by user
         normTx.targetAccount = '永豐大戶 (DAWHO)';
         normTx.note = '萌媽點外送資助 (存入永豐大戶)';
       } 
@@ -264,7 +275,7 @@ class XuanMuFinanceApp {
         quickPresets: this.quickPresets
       };
       
-      // 1. Local tunnel sync
+      // 1. Local Tunnel Sync
       await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -315,7 +326,6 @@ class XuanMuFinanceApp {
           
           this.render();
 
-          // If local has more data than cloud, auto push merged 9/5 data to cloud!
           if (localHadMore || this.transactions.length > payload.transactions.length) {
             this.pushToCloud();
           }
@@ -324,7 +334,6 @@ class XuanMuFinanceApp {
           if (statusEl) statusEl.textContent = `已成功同步最新資料 (${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})})`;
         }
       } else {
-        // If cloud had no response, push local data (e.g. 9/5 data on iPhone) to cloud!
         if (this.transactions && this.transactions.length > 0) {
           this.pushToCloud();
         }
@@ -1048,14 +1057,14 @@ class XuanMuFinanceApp {
 
       let amountColorClass = 'text-slate-800';
       if (rawNumericBal < 0) {
-        amountColorClass = 'text-rose-600'; // Only RED when balance is truly negative!
+        amountColorClass = 'text-rose-600';
       } else {
         if (normName === '💳 阿彤代付') {
           amountColorClass = 'text-purple-600';
         } else if (normName.includes('投資')) {
           amountColorClass = 'text-indigo-600';
         } else if (normName.includes('錢包') || normName.includes('阿萌')) {
-          amountColorClass = 'text-emerald-600'; // Positive wallet balance displays in Emerald Green!
+          amountColorClass = 'text-emerald-600';
         } else if (normName.includes('現金')) {
           amountColorClass = 'text-amber-600';
         } else {
@@ -1252,8 +1261,8 @@ class XuanMuFinanceApp {
         this.txTargetAccount.value = '共同小雞錢包';
         this.txNote.value = '永豐大戶撥款至共同小雞錢包';
       } else if (normName === '郵局 (實體存簿)' || normName === '郵局數位帳戶') {
-        this.txTargetAccount.value = '宣穆永豐個人戶 (投資戶)';
-        this.txNote.value = '郵局轉存至宣穆永豐投資專戶';
+        this.txTargetAccount.value = '永豐大戶 (DAWHO)';
+        this.txNote.value = '郵局轉存至永豐大戶';
       }
     }
   }
@@ -1395,9 +1404,9 @@ class XuanMuFinanceApp {
       const ctxBar = barCanvas.getContext('2d');
       if (this.barChart) this.barChart.destroy();
 
-      const postPhys = data.accountBalances['郵局 (實體存簿)'] || 110000;
-      const postDigi = data.accountBalances['郵局數位帳戶'] || 170000;
-      const sinoPac = data.accountBalances['永豐大戶 (DAWHO)'] || 137867;
+      const postPhys = data.accountBalances['郵局 (實體存簿)'] || 0;
+      const postDigi = data.accountBalances['郵局數位帳戶'] || 0;
+      const sinoPac = data.accountBalances['永豐大戶 (DAWHO)'] || 0;
       const sinoPacXuanMu = data.accountBalances['宣穆永豐個人戶 (投資戶)'] || 0;
       const cashBal = data.accountBalances['育兒實體現金'] || 0;
 
@@ -1617,46 +1626,49 @@ class XuanMuFinanceApp {
   }
 
   autoInferFormDefaults() {
+    // Only auto-infer for new entries, do not force-override manual selection
+    if (this.txId && this.txId.value) return;
+
     const type = this.currentTxType;
     const src = this.normalizeAccountName(this.txSourceAccount.value, type === '收入');
 
     if (type === '支出') {
       this.txTargetAccount.value = '商家/用品店';
-      this.txFund.value = '宣穆基金';
+      if (!this.txFund.value) this.txFund.value = '宣穆基金';
       if (!this.txCategory.value || this.txCategory.value === '轉帳') {
         this.txCategory.value = '育兒用品';
       }
     } else if (type === '收入') {
       if (src === '政府補助/親友' || src.includes('補助') || src.includes('郵局')) {
         this.txTargetAccount.value = '郵局 (實體存簿)';
-        this.txFund.value = '宣穆戶頭';
+        if (!this.txFund.value) this.txFund.value = '宣穆戶頭';
         this.txCategory.value = '其他';
       } else if (src.includes('宣穆永豐') || src.includes('投資')) {
         this.txTargetAccount.value = '宣穆永豐個人戶 (投資戶)';
-        this.txFund.value = '宣穆投資';
+        if (!this.txFund.value) this.txFund.value = '宣穆投資';
         this.txCategory.value = '其他';
       } else if (src.includes('萌媽')) {
         this.txTargetAccount.value = '育兒實體現金';
-        this.txFund.value = '其他';
+        if (!this.txFund.value) this.txFund.value = '其他';
         this.txCategory.value = '其他';
       } else {
         this.txTargetAccount.value = '育兒實體現金';
-        this.txFund.value = '宣穆戶頭';
+        if (!this.txFund.value) this.txFund.value = '宣穆戶頭';
         this.txCategory.value = '其他';
       }
     } else if (type === '轉帳') {
       if (src === '永豐大戶 (DAWHO)') {
         this.txTargetAccount.value = '共同小雞錢包';
         this.txCategory.value = '其他';
-        this.txFund.value = '宣穆基金';
+        if (!this.txFund.value) this.txFund.value = '宣穆基金';
       } else if (src === '郵局數位帳戶') {
         this.txTargetAccount.value = 'LINE 阿萌';
         this.txCategory.value = '其他';
-        this.txFund.value = '宣穆基金';
+        if (!this.txFund.value) this.txFund.value = '宣穆基金';
       } else if (src.includes('郵局')) {
-        this.txTargetAccount.value = '宣穆永豐個人戶 (投資戶)';
+        this.txTargetAccount.value = '永豐大戶 (DAWHO)';
         this.txCategory.value = '其他';
-        this.txFund.value = '宣穆投資';
+        if (!this.txFund.value) this.txFund.value = '宣穆基金';
       }
     }
   }
@@ -1750,7 +1762,7 @@ class XuanMuFinanceApp {
       sourceAccount: src,
       targetAccount: tgt,
       category: this.txCategory.value || '育兒用品',
-      fund: this.txFund.value,
+      fund: this.txFund.value || '宣穆基金',
       amount: Number(this.txAmount.value),
       note: this.txNote.value
     };
@@ -1906,7 +1918,7 @@ class XuanMuFinanceApp {
       if (valStr !== '') {
         const val = Number(valStr);
         savedInputs[normName] = val;
-        const parentShare = val - xuanMuLedgerBal; // Allow negative value!
+        const parentShare = val - xuanMuLedgerBal;
         totalParentPersonal += parentShare;
 
         if (resEl) {
