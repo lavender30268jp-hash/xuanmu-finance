@@ -298,9 +298,10 @@ class XuanMuFinanceApp {
 
       if (payload && payload.transactions && Array.isArray(payload.transactions)) {
         const mergedTxs = this.mergeTransactions(this.transactions, payload.transactions);
-        const hasNewData = mergedTxs.length > this.transactions.length || payload.updatedAt !== this.lastUpdatedAt;
+        const hasNewData = mergedTxs.length > payload.transactions.length || payload.updatedAt !== this.lastUpdatedAt;
+        const localHadMore = this.transactions.length > payload.transactions.length;
 
-        if (!isSilent || hasNewData) {
+        if (!isSilent || hasNewData || localHadMore) {
           this.lastUpdatedAt = payload.updatedAt || new Date().toISOString();
           localStorage.setItem('xm_last_updated_at', this.lastUpdatedAt);
           
@@ -313,9 +314,19 @@ class XuanMuFinanceApp {
           if (payload.quickPresets) this.quickPresets = payload.quickPresets;
           
           this.render();
+
+          // If local has more data than cloud, auto push merged 9/5 data to cloud!
+          if (localHadMore || this.transactions.length > payload.transactions.length) {
+            this.pushToCloud();
+          }
           
           const statusEl = document.getElementById('cloud-sync-status-text');
           if (statusEl) statusEl.textContent = `已成功同步最新資料 (${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})})`;
+        }
+      } else {
+        // If cloud had no response, push local data (e.g. 9/5 data on iPhone) to cloud!
+        if (this.transactions && this.transactions.length > 0) {
+          this.pushToCloud();
         }
       }
     } catch (e) {}
