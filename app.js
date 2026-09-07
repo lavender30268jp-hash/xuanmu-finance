@@ -241,6 +241,7 @@ class XuanMuFinanceApp {
     this.modalQuickPresets = document.getElementById('modal-quick-presets');
     this.modalAccountDetails = document.getElementById('modal-account-details');
     this.modalCoMingled = document.getElementById('modal-comingled');
+    this.modalBackendManager = document.getElementById('modal-backend-manager');
 
     this.formTx = document.getElementById('form-transaction');
     this.txId = document.getElementById('tx-id');
@@ -1988,6 +1989,72 @@ class XuanMuFinanceApp {
       }
     }
     if (grandXuanMuEl) grandXuanMuEl.textContent = `$${totalXuanMuSpecial.toLocaleString()}`;
+  }
+
+  openBackendManagerModal() {
+    const statusEl = document.getElementById('backend-json-status');
+    const textarea = document.getElementById('backend-json-textarea');
+    if (statusEl) statusEl.textContent = '載入雲端中...';
+
+    const currentObj = {
+      appTitle: this.appTitle,
+      updatedAt: this.lastUpdatedAt || new Date().toISOString(),
+      syncRoomKey: this.syncRoomKey,
+      totalTransactions: this.transactions.length,
+      categories: this.categories,
+      accounts: this.accounts,
+      quickPresets: this.quickPresets,
+      transactions: this.transactions
+    };
+
+    if (textarea) textarea.value = JSON.stringify(currentObj, null, 2);
+    if (statusEl) statusEl.textContent = `共 ${this.transactions.length} 筆交易紀錄`;
+
+    this.modalBackendManager.classList.remove('hidden');
+  }
+
+  forceResetLocalFromCloud() {
+    if (confirm('⚠️ 警告：這將會清除您這台裝置瀏覽器的本機快取，並以雲端後台最新資料 100% 完全覆蓋本機。確定要執行嗎？')) {
+      localStorage.removeItem('xm_transactions');
+      localStorage.removeItem('xm_accounts');
+      localStorage.removeItem('xm_categories');
+      this.transactions = DEFAULT_TRANSACTIONS;
+      this.pullFromCloud(false);
+      alert('已完成強制重置！本機已成功覆蓋為雲端最新數據。');
+      this.closeModal(this.modalBackendManager);
+    }
+  }
+
+  forcePushCurrentToCloud() {
+    if (confirm('🚀 確定要將您當前畫面顯示的資料【強制發布覆蓋雲端後台】嗎？全台與所有連線裝置將會同步更新為此版本。')) {
+      this.saveState();
+      alert(`已成功將當前畫面的 ${this.transactions.length} 筆紀錄強制發布至雲端後台！`);
+      this.closeModal(this.modalBackendManager);
+    }
+  }
+
+  saveBackendJSONFromEditor() {
+    const textarea = document.getElementById('backend-json-textarea');
+    if (!textarea) return;
+    try {
+      const parsed = JSON.parse(textarea.value);
+      if (parsed && parsed.transactions && Array.isArray(parsed.transactions)) {
+        if (parsed.appTitle) this.appTitle = parsed.appTitle;
+        if (parsed.categories) this.categories = parsed.categories;
+        this.transactions = this.deduplicateTransactions(parsed.transactions);
+        if (parsed.accounts) this.accounts = parsed.accounts;
+        if (parsed.quickPresets) this.quickPresets = parsed.quickPresets;
+
+        this.render();
+        this.saveState();
+        alert(`後台 JSON 修改成功！已同步至全球雲端資料庫（共 ${this.transactions.length} 筆紀錄）。`);
+        this.closeModal(this.modalBackendManager);
+      } else {
+        alert('格式錯誤：JSON 必須包含 transactions 陣列。');
+      }
+    } catch (e) {
+      alert('解析失敗：請檢查 JSON 語法是否正確（例如是否有漏掉引號或逗點）。');
+    }
   }
 
   openRulesModal() { this.modalRules.classList.remove('hidden'); }

@@ -58,6 +58,11 @@
           <span>⚖️ 帳戶對帳與代付智算</span>
         </button>
 
+        <button onclick="app.openBackendManagerModal()" class="px-3.5 py-2.5 rounded-2xl bg-purple-50 hover:bg-purple-100 text-purple-900 text-xs font-extrabold flex items-center gap-1.5 border border-purple-200 transition-all shadow-sm">
+          <i class="fa-solid fa-server text-purple-600"></i>
+          <span>☁️ 雲端後台數據總管</span>
+        </button>
+
         <button id="btn-cloud-status" onclick="app.pullFromCloud(); alert('已完成雲端即時強制作業同步！手機與電腦資料庫已 100% 保持一致。');" class="px-3.5 py-2.5 rounded-2xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1.5 border border-emerald-200 transition-all" title="點擊強制作業同步">
           <i class="fa-solid fa-rotate text-emerald-600 animate-spin-slow"></i>
           <span id="cloud-sync-status-text">雲端即時同步中</span>
@@ -710,7 +715,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260907-v4"></script>
+  <script src="app.js?v=20260907-v5"></script>
   <!-- Modal 6: Account Breakdown & Transaction Details -->
   <div id="modal-account-details" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
@@ -841,6 +846,87 @@
           </div>
         </div>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 8: Backend Cloud Data Manager (雲端資料庫總管與後台管理中心) -->
+  <div id="modal-backend-manager" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
+      
+      <!-- Header -->
+      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+        <div>
+          <h3 class="text-base font-black flex items-center gap-2">
+            <i class="fa-solid fa-server text-purple-200"></i> ☁️ 雲端資料庫總管與後台管理中心
+          </h3>
+          <p class="text-xs text-purple-100 mt-0.5 font-medium">解決跨裝置資料不一致、直接檢視與管理最高權限雲端後端資料</p>
+        </div>
+        <button onclick="app.closeModal(document.getElementById('modal-backend-manager'))" class="w-8 h-8 rounded-full bg-white/20 text-white hover:bg-white/30 flex items-center justify-center transition-colors">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-5 text-xs flex-1">
+
+        <!-- 1-Click Sync Controls -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="p-4 bg-purple-50 border border-purple-200 rounded-2xl space-y-2">
+            <div class="font-extrabold text-purple-900 text-sm flex items-center gap-1.5">
+              <i class="fa-solid fa-download text-purple-600"></i> 📥 以【雲端後台】為準
+            </div>
+            <p class="text-slate-600 text-[11px] leading-relaxed">
+              如果手機或電腦資料不一致，點擊此按鈕會<b>強制清除本機快取</b>，並 100% 完全載入雲端後台最新數據：
+            </p>
+            <button onclick="app.forceResetLocalFromCloud()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-black rounded-xl text-xs shadow-md transition-colors">
+              🔥 強制以雲端資料覆蓋本機
+            </button>
+          </div>
+
+          <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
+            <div class="font-extrabold text-amber-900 text-sm flex items-center gap-1.5">
+              <i class="fa-solid fa-upload text-amber-600"></i> 📤 以【我畫面的資料】為準
+            </div>
+            <p class="text-slate-600 text-[11px] leading-relaxed">
+              如果您確定目前畫面的資料是最完整的，點擊此按鈕會<b>強制發布覆蓋雲端後台</b>：
+            </p>
+            <button onclick="app.forcePushCurrentToCloud()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl text-xs shadow-md transition-colors">
+              🚀 強制發布當前畫面至雲端
+            </button>
+          </div>
+        </div>
+
+        <!-- Raw JSON Data View/Editor -->
+        <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-code text-slate-600"></i> 📝 後端原生 JSON 數據檢視與編輯器
+            </h4>
+            <span id="backend-json-status" class="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-bold">載入中...</span>
+          </div>
+
+          <p class="text-slate-500 text-[11px]">
+            以下為雲端後台儲存的完全原生 JSON 資料結構，包含您所有帳戶、交易筆數與預算設定：
+          </p>
+
+          <textarea id="backend-json-textarea" rows="10" class="w-full font-mono text-[11px] bg-slate-900 text-emerald-400 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 leading-relaxed"></textarea>
+
+          <div class="flex items-center justify-between pt-1">
+            <button onclick="app.openBackendManagerModal()" class="px-3 py-1.5 bg-slate-200 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-300">
+              🔄 重新整理 JSON 數據
+            </button>
+            <button onclick="app.saveBackendJSONFromEditor()" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black rounded-xl text-xs shadow-md hover:from-purple-700 hover:to-indigo-700">
+              💾 儲存原生 JSON 並更新全球雲端
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+        <button onclick="app.closeModal(document.getElementById('modal-backend-manager'))" class="px-4 py-2 rounded-xl bg-slate-200 text-slate-700 font-extrabold hover:bg-slate-300 text-xs">
+          關閉後台
+        </button>
       </div>
     </div>
   </div>
