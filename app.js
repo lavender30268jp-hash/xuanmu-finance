@@ -117,7 +117,7 @@ class XuanMuFinanceApp {
     const result = [];
 
     txs.forEach(t => {
-      if (t.id === 'tx-10' || t.id === 'tx-11') return;
+      if (!t || t.id === 'tx-10' || t.id === 'tx-11') return;
 
       let src = this.normalizeAccountName(t.sourceAccount, t.type === '收入');
       let tgt = this.normalizeAccountName(t.targetAccount);
@@ -132,14 +132,49 @@ class XuanMuFinanceApp {
       }
 
       const normTx = { ...t, sourceAccount: src, targetAccount: tgt, category: cat };
+      const amt = Number(normTx.amount);
+      const note = normTx.note || '';
 
-      // Deduplicate key for 2026-08-08 relatives red packet
-      if (normTx.date === '2026-08-08' && Number(normTx.amount) === 4800 && (normTx.note || '').includes('政詢親戚給的')) {
+      // 1. 2026-09-05 轉帳 7421 (永豐先付，轉帳歸還)
+      if (normTx.date === '2026-09-05' && amt === 7421 && note.includes('永豐先付')) {
+        if (seenMap.has('dedup_2026_09_05_7421')) return;
+        seenMap.set('dedup_2026_09_05_7421', true);
+        normTx.targetAccount = '永豐大戶 (DAWHO)';
+        normTx.fund = '宣穆基金';
+      }
+      // 2. 2026-08-31 育兒津貼 5000
+      else if (normTx.date === '2026-08-31' && amt === 5000 && note.includes('育兒津貼')) {
+        if (seenMap.has('dedup_2026_08_31_5000')) return;
+        seenMap.set('dedup_2026_08_31_5000', true);
+      }
+      // 3. 2026-09-01 8月份結算 10172
+      else if (normTx.date === '2026-09-01' && amt === 10172) {
+        if (seenMap.has('dedup_2026_09_01_10172')) return;
+        seenMap.set('dedup_2026_09_01_10172', true);
+      }
+      // 4. 2026-09-01 8月底統計 3013
+      else if (normTx.date === '2026-09-01' && amt === 3013) {
+        if (seenMap.has('dedup_2026_09_01_3013')) return;
+        seenMap.set('dedup_2026_09_01_3013', true);
+      }
+      // 5. 2026-09-04 借給阿萌 30000
+      else if (normTx.date === '2026-09-04' && amt === 30000) {
+        if (seenMap.has('dedup_2026_09_04_30000')) return;
+        seenMap.set('dedup_2026_09_04_30000', true);
+      }
+      // 6. 2026-08-26 開戶紀念 2770, 2012, 613, 2026
+      else if (normTx.date === '2026-08-26' && [2770, 2012, 613, 2026].includes(amt) && note.includes('開戶紀念')) {
+        const key = `dedup_2026_08_26_${amt}`;
+        if (seenMap.has(key)) return;
+        seenMap.set(key, true);
+      }
+      // 7. 2026-08-08 親戚紅包 4800
+      else if (normTx.date === '2026-08-08' && amt === 4800 && note.includes('政詢親戚給的')) {
         if (seenMap.has('relatives_red_packet_4800')) return;
         seenMap.set('relatives_red_packet_4800', true);
       } 
-      // Deduplicate key for 2026-07-20 Mom delivery subsidy ($20,000)
-      else if (normTx.date === '2026-07-20' && Number(normTx.amount) === 20000 && (normTx.note || '').includes('萌媽')) {
+      // 8. 2026-07-20 外送資助 20000
+      else if (normTx.date === '2026-07-20' && amt === 20000 && note.includes('萌媽')) {
         if (seenMap.has('mom_delivery_subsidy_20000')) return;
         seenMap.set('mom_delivery_subsidy_20000', true);
         normTx.targetAccount = '永豐大戶 (DAWHO)';
