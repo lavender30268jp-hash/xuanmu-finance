@@ -63,12 +63,25 @@ const DEFAULT_QUICK_PRESETS = [
   { id: 'qp-reimburse', name: '💸 還錢給阿彤 (代付歸還)', mode: 'prompt-reimburse', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '💳 阿彤代付', category: '其他', fund: '宣穆基金', note: '歸還阿彤代付款', icon: 'fa-hand-holding-hand text-indigo-500', border: 'border-indigo-200 hover:border-indigo-400 bg-indigo-50/40', desc: '從宣穆基金/銀行歸還墊款給阿彤' }
 ];
 
+const APP_BUILD_VER = '20260907_v30';
+
 class XuanMuFinanceApp {
   constructor() {
+    // Check build version to clear stale local storage cache on mobile/desktop version updates
+    const storedBuildVer = localStorage.getItem('xm_build_ver');
+    if (storedBuildVer !== APP_BUILD_VER) {
+      console.log(`[Version Upgrade] Flushing old local cache: ${storedBuildVer} -> ${APP_BUILD_VER}`);
+      localStorage.removeItem('xm_transactions');
+      localStorage.removeItem('xm_accounts');
+      localStorage.removeItem('xm_categories');
+      localStorage.removeItem('xm_quick_presets');
+      localStorage.setItem('xm_build_ver', APP_BUILD_VER);
+    }
+
     this.appTitle = localStorage.getItem('xm_app_title') || '小萌馬金庫';
     this.categories = JSON.parse(localStorage.getItem('xm_categories')) || DEFAULT_CATEGORIES;
     
-    // Always merge default transactions with local storage
+    // Always load clean default transactions or versioned storage
     let rawTxs = JSON.parse(localStorage.getItem('xm_transactions'));
     if (!rawTxs || !Array.isArray(rawTxs) || rawTxs.length === 0) {
       rawTxs = DEFAULT_TRANSACTIONS;
@@ -343,28 +356,31 @@ class XuanMuFinanceApp {
         }
       }
 
-      if (payload && payload.transactions && Array.isArray(payload.transactions)) {
-        const mergedTxs = this.mergeTransactions(this.transactions, payload.transactions);
-        const hasNewData = mergedTxs.length > payload.transactions.length || payload.updatedAt !== this.lastUpdatedAt;
-        const localHadMore = this.transactions.length > payload.transactions.length;
+      if (payload && payload.transactions && Array.isArray(payload.transactions) && payload.transactions.length > 0) {
+        const isNewer = payload.updatedAt !== this.lastUpdatedAt;
+        const countDiffers = this.transactions.length !== payload.transactions.length;
 
-        if (!isSilent || hasNewData || localHadMore) {
+        if (!isSilent || isNewer || countDiffers) {
           this.lastUpdatedAt = payload.updatedAt || new Date().toISOString();
           localStorage.setItem('xm_last_updated_at', this.lastUpdatedAt);
           
           if (payload.appTitle) this.appTitle = payload.appTitle;
           if (payload.categories && Array.isArray(payload.categories)) this.categories = payload.categories;
 
-          this.transactions = this.deduplicateTransactions(mergedTxs);
+          // Directly adopt cloud transactions to prevent local stale cache corruption
+          this.transactions = this.deduplicateTransactions(payload.transactions);
+          localStorage.setItem('xm_transactions', JSON.stringify(this.transactions));
             
-          if (payload.accounts) this.accounts = payload.accounts;
-          if (payload.quickPresets) this.quickPresets = payload.quickPresets;
+          if (payload.accounts) {
+            this.accounts = payload.accounts;
+            localStorage.setItem('xm_accounts', JSON.stringify(this.accounts));
+          }
+          if (payload.quickPresets) {
+            this.quickPresets = payload.quickPresets;
+            localStorage.setItem('xm_quick_presets', JSON.stringify(this.quickPresets));
+          }
           
           this.render();
-
-          if (localHadMore || this.transactions.length > payload.transactions.length) {
-            this.pushToCloud();
-          }
           
           const statusEl = document.getElementById('cloud-sync-status-text');
           if (statusEl) statusEl.textContent = `已成功同步最新資料 (${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})})`;
