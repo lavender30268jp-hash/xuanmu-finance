@@ -63,7 +63,7 @@ const DEFAULT_QUICK_PRESETS = [
   { id: 'qp-reimburse', name: '💸 還錢給阿彤 (代付歸還)', mode: 'prompt-reimburse', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '💳 阿彤代付', category: '其他', fund: '宣穆基金', note: '歸還阿彤代付款', icon: 'fa-hand-holding-hand text-indigo-500', border: 'border-indigo-200 hover:border-indigo-400 bg-indigo-50/40', desc: '從宣穆基金/銀行歸還墊款給阿彤' }
 ];
 
-const APP_BUILD_VER = '20260907_v30';
+const APP_BUILD_VER = '20260907_v35';
 
 class XuanMuFinanceApp {
   constructor() {
@@ -120,7 +120,8 @@ class XuanMuFinanceApp {
     this.render();
 
     this.pullFromCloud();
-    setInterval(() => this.pullFromCloud(true), 3000);
+    // Poll every 60 seconds to respect public API rate limits
+    setInterval(() => this.pullFromCloud(true), 60000);
 
     window.addEventListener('focus', () => this.pullFromCloud());
   }
