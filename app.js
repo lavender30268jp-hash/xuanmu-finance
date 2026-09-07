@@ -31,12 +31,13 @@ const DEFAULT_TRANSACTIONS = [
   { id: 'tx-17', date: '2026-08-12', type: '支出', sourceAccount: '共同小雞錢包', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 2048, note: '林貝兒兩罐+兩盒' },
   { id: 'tx-16', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒用品', fund: '宣穆基金', amount: 5368, note: '圍欄' },
   { id: 'tx-15', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '育兒用品', fund: '宣穆基金', amount: 15000, note: '115/8 共同小雞' },
-  { id: 'tx-14', date: '2026-08-08', type: '收入', sourceAccount: '政府補助/親友', targetAccount: '育兒實體現金', category: '其他', fund: '宣穆戶頭', amount: 4800, note: '政詢親戚給的 (阿姨+小舅舅)' },
+  { id: 'tx-14', date: '2026-08-08', type: '收入', sourceAccount: '政府補助/親友', targetAccount: '育兒實體現金', category: '其他', fund: '其他', amount: 4800, note: '政詢親戚給的 (阿姨+小舅舅)' },
   { id: 'tx-13', date: '2026-08-07', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 10321, note: '阿萌花用：扣款 10321' },
   { id: 'tx-12', date: '2026-08-05', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒用品', fund: '宣穆基金', amount: 7539, note: '8/5 購買織物清洗機 (育兒開銷)' },
   { id: 'tx-9', date: '2026-08-01', type: '支出', sourceAccount: '郵局數位帳戶', targetAccount: 'LINE 阿萌', category: '育兒用品', fund: '宣穆基金', amount: 10000, note: '8/1 阿萌小雞' },
   { id: 'tx-8', date: '2026-07-20', type: '收入', sourceAccount: '萌媽資助', targetAccount: '永豐大戶 (DAWHO)', category: '其他', fund: '其他', amount: 20000, note: '萌媽點外送資助 (存入永豐大戶)' },
   { id: 'tx-7', date: '2026-07-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: 'LINE 阿萌', category: '育兒用品', fund: '宣穆基金', amount: 10000, note: '7/19 阿萌小雞' },
+  { id: 'tx-6-jul', date: '2026-08-15', type: '收入', sourceAccount: '政府補助/親友', targetAccount: '郵局 (實體存簿)', category: '其他', fund: '宣穆戶頭', amount: 5000, note: '育兒津貼7月' },
   { id: 'tx-6', date: '2026-07-15', type: '收入', sourceAccount: '政府補助/親友', targetAccount: '郵局 (實體存簿)', category: '其他', fund: '宣穆戶頭', amount: 5000, note: '育兒津貼6月' },
   { id: 'tx-5', date: '2026-07-10', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '郵局數位帳戶', category: '其他', fund: '宣穆基金', amount: 180000, note: '永豐轉入郵局數位帳戶' },
   { id: 'tx-4', date: '2026-07-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '其他', fund: '宣穆基金', amount: 15000, note: '115/7 共同小雞' },
@@ -63,7 +64,7 @@ const DEFAULT_QUICK_PRESETS = [
   { id: 'qp-reimburse', name: '💸 還錢給阿彤 (代付歸還)', mode: 'prompt-reimburse', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '💳 阿彤代付', category: '其他', fund: '宣穆基金', note: '歸還阿彤代付款', icon: 'fa-hand-holding-hand text-indigo-500', border: 'border-indigo-200 hover:border-indigo-400 bg-indigo-50/40', desc: '從宣穆基金/銀行歸還墊款給阿彤' }
 ];
 
-const APP_BUILD_VER = '20260907_v35';
+const APP_BUILD_VER = '20260907_v40';
 
 class XuanMuFinanceApp {
   constructor() {
