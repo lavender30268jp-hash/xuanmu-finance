@@ -1271,6 +1271,8 @@ class XuanMuFinanceApp {
     outEl.textContent = `-$${totalOut.toLocaleString()}`;
     countEl.textContent = txs.length;
 
+    if (list.parentElement) list.parentElement.scrollTop = 0;
+
     document.getElementById('btn-filter-main-table').onclick = () => {
       this.searchKeyword.value = normName;
       this.renderTransactionsTable();
@@ -1351,17 +1353,18 @@ class XuanMuFinanceApp {
       displayTitle = '育兒總資金 (TOTAL) - 跨帳戶收支與交易紀錄';
       iconClass = 'fa-coins text-amber-500';
       filteredTxs = [...this.transactions];
-      balEl.textContent = `$${data.totalAssets.toLocaleString()}`;
     } else if (fundType === '宣穆戶頭') {
       displayTitle = '宣穆戶頭 (積蓄) - 生育給付與津貼明細';
       iconClass = 'fa-piggy-bank text-emerald-500';
       filteredTxs = this.transactions.filter(t => t.fund === '宣穆戶頭');
-      balEl.textContent = `$${data.xuanmuAccount.toLocaleString()}`;
+    } else if (fundType === '宣穆基金') {
+      displayTitle = '宣穆基金 (營運花用) - 營運撥款與開銷明細';
+      iconClass = 'fa-sack-dollar text-teal-500';
+      filteredTxs = this.transactions.filter(t => t.fund === '宣穆基金');
     } else if (fundType === '宣穆投資') {
       displayTitle = '宣穆投資與其他 - 萌媽資助與宣穆永豐投資戶明細';
       iconClass = 'fa-chart-line text-purple-500';
-      filteredTxs = this.transactions.filter(t => t.fund === '宣穆投資' || t.fund === '其他' || t.sourceAccount.includes('投資戶') || t.targetAccount.includes('投資戶'));
-      balEl.textContent = `$${(data.xuanmuInvest + data.otherFund + (data.accountBalances['宣穆永豐個人戶 (投資戶)'] || 0)).toLocaleString()}`;
+      filteredTxs = this.transactions.filter(t => t.fund === '宣穆投資' || t.fund === '其他' || (t.sourceAccount && t.sourceAccount.includes('投資戶')) || (t.targetAccount && t.targetAccount.includes('投資戶')));
     }
 
     title.innerHTML = `<i class="fa-solid ${iconClass}"></i> ${displayTitle}`;
@@ -1421,9 +1424,18 @@ class XuanMuFinanceApp {
       });
     }
 
+    const netBal = totalIn - totalOut;
+    if (fundType === 'total') {
+      balEl.textContent = `$${data.totalAssets.toLocaleString()}`;
+    } else {
+      balEl.textContent = `$${netBal.toLocaleString()}`;
+    }
+
     inEl.textContent = `+$${totalIn.toLocaleString()}`;
     outEl.textContent = `-$${totalOut.toLocaleString()}`;
     countEl.textContent = filteredTxs.length;
+
+    if (list.parentElement) list.parentElement.scrollTop = 0;
 
     document.getElementById('btn-filter-main-table').onclick = () => {
       this.searchKeyword.value = fundType === 'total' ? '' : fundType;
