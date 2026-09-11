@@ -326,19 +326,32 @@ class XuanMuFinanceApp {
         quickPresets: this.quickPresets
       };
       
-      // 1. Local Tunnel Sync
+      // 1. Local Tunnel / Ruby Server Sync (if running)
       await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       }).catch(() => {});
 
-      // 2. Global Restful-API Cloud Engine
-      await fetch('https://api.restful-api.dev/objects/ff808181a067127101a07b0e46af3212', {
+      // 2. Global Cloud Sync Engine (with dynamic object recovery)
+      let objectId = localStorage.getItem('xm_cloud_obj_id_' + this.syncRoomKey) || 'ff808181a067127101a07b0e46af3212';
+      let putRes = await fetch(`https://api.restful-api.dev/objects/${objectId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'xuanmu-finance-sync', data: payload })
-      }).catch(() => {});
+        body: JSON.stringify({ name: `xuanmu-finance-${this.syncRoomKey}`, data: payload })
+      }).catch(() => null);
+
+      if (!putRes || !putRes.ok) {
+        let postRes = await fetch('https://api.restful-api.dev/objects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: `xuanmu-finance-${this.syncRoomKey}`, data: payload })
+        }).then(r => r.json()).catch(() => null);
+
+        if (postRes && postRes.id) {
+          localStorage.setItem('xm_cloud_obj_id_' + this.syncRoomKey, postRes.id);
+        }
+      }
       
       const statusEl = document.getElementById('cloud-sync-status-text');
       if (statusEl) statusEl.textContent = `已即時雲端同步 (${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})})`;
@@ -352,40 +365,39 @@ class XuanMuFinanceApp {
       if (resLocal && resLocal.transactions && Array.isArray(resLocal.transactions)) {
         payload = resLocal;
       } else {
-        let resRestful = await fetch('https://api.restful-api.dev/objects/ff808181a067127101a07b0e46af3212').then(r => r.json()).catch(() => null);
-        if (resRestful && resRestful.data && resRestful.data.transactions) {
+        let objectId = localStorage.getItem('xm_cloud_obj_id_' + this.syncRoomKey) || 'ff808181a067127101a07b0e46af3212';
+        let resRestful = await fetch(`https://api.restful-api.dev/objects/${objectId}`).then(r => r.json()).catch(() => null);
+        if (resRestful && resRestful.data && resRestful.data.transactions && Array.isArray(resRestful.data.transactions)) {
           payload = resRestful.data;
         }
       }
 
       if (payload && payload.transactions && Array.isArray(payload.transactions) && payload.transactions.length > 0) {
-        const isNewer = payload.updatedAt !== this.lastUpdatedAt;
-        const countDiffers = this.transactions.length !== payload.transactions.length;
-
-        if (!isSilent || isNewer || countDiffers) {
-          this.lastUpdatedAt = payload.updatedAt || new Date().toISOString();
-          localStorage.setItem('xm_last_updated_at', this.lastUpdatedAt);
-          
-          if (payload.appTitle) this.appTitle = payload.appTitle;
-          if (payload.categories && Array.isArray(payload.categories)) this.categories = payload.categories;
-
-          // Directly adopt cloud transactions to prevent local stale cache corruption
-          this.transactions = this.deduplicateTransactions(payload.transactions);
-          localStorage.setItem('xm_transactions', JSON.stringify(this.transactions));
-            
-          if (payload.accounts) {
-            this.accounts = payload.accounts;
-            localStorage.setItem('xm_accounts', JSON.stringify(this.accounts));
-          }
-          if (payload.quickPresets) {
-            this.quickPresets = payload.quickPresets;
-            localStorage.setItem('xm_quick_presets', JSON.stringify(this.quickPresets));
-          }
-          
-          this.render();
-          
-          const statusEl = document.getElementById('cloud-sync-status-text');
-          if (statusEl) statusEl.textContent = `已成功同步最新資料 (${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})})`;
+        // Smart merge local and cloud transactions to prevent data loss
+        const mergedTxs = this.mergeTransactions(this.transactions, payload.transactions);
+        const hasNewData = mergedTxs.length > this.transactions.length;
+        
+        this.transactions = this.deduplicateTransactions(mergedTxs);
+        localStorage.setItem('xm_transactions', JSON.stringify(this.transactions));
+        
+        if (payload.appTitle) this.appTitle = payload.appTitle;
+        if (payload.categories && Array.isArray(payload.categories)) this.categories = payload.categories;
+        if (payload.accounts) {
+          this.accounts = payload.accounts;
+          localStorage.setItem('xm_accounts', JSON.stringify(this.accounts));
+        }
+        if (payload.quickPresets) {
+          this.quickPresets = payload.quickPresets;
+          localStorage.setItem('xm_quick_presets', JSON.stringify(this.quickPresets));
+        }
+        
+        this.render();
+        const statusEl = document.getElementById('cloud-sync-status-text');
+        if (statusEl) statusEl.textContent = `已成功同步最新資料 (${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})})`;
+        
+        // Push merged state back to cloud if local had extra items
+        if (hasNewData) {
+          this.pushToCloud();
         }
       } else {
         if (this.transactions && this.transactions.length > 0) {
@@ -1892,11 +1904,11 @@ class XuanMuFinanceApp {
   }
 
   copyOutdoorSyncLink() {
-    const link = `https://ff7963dbb3a97e.lhr.life?sync=${encodeURIComponent(this.syncRoomKey)}`;
+    const link = `https://lavender30268jp-hash.github.io/xuanmu-finance/?sync=${encodeURIComponent(this.syncRoomKey)}`;
     navigator.clipboard.writeText(link).then(() => {
-      alert('已複製全球戶外 4G/5G 連線網址！請將網址傳送到 LINE，在手機點開即可隨時連線！');
+      alert('已複製 GitHub Pages 雲端同步網址！在手機開啟即可隨時連線同步！');
     }).catch(() => {
-      prompt('請複製以下戶外連線網址：', link);
+      prompt('請複製以下雲端同步網址：', link);
     });
   }
 
