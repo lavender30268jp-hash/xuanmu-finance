@@ -27,7 +27,7 @@ const DEFAULT_TRANSACTIONS = [
   { id: 'tx-21', date: '2026-08-20', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '醫療費用', fund: '宣穆基金', amount: 4000, note: '腸病毒疫苗第一劑' },
   { id: 'tx-20', date: '2026-08-19', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 3326, note: '織物清洗機運費' },
   { id: 'tx-19', date: '2026-08-18', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '商家/用品店', category: '醫療費用', fund: '宣穆基金', amount: 1900, note: '自費預防針（輪狀病毒...）' },
-  { id: 'tx-18', date: '2026-08-17', type: '支出', sourceAccount: '育兒實體現金', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 4800, note: '臍帶章' },
+  { id: 'tx-18', date: '2026-08-17', type: '支出', sourceAccount: '育兒實體現金', targetAccount: '商家/用品店', category: '育兒用品', fund: '其他', amount: 4800, note: '臍帶章' },
   { id: 'tx-17', date: '2026-08-12', type: '支出', sourceAccount: '共同小雞錢包', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 2048, note: '林貝兒兩罐+兩盒' },
   { id: 'tx-16', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '家電/育兒設備店', category: '育兒用品', fund: '宣穆基金', amount: 5368, note: '圍欄' },
   { id: 'tx-15', date: '2026-08-10', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '共同小雞錢包', category: '育兒用品', fund: '宣穆基金', amount: 15000, note: '115/8 共同小雞' },
@@ -64,7 +64,7 @@ const DEFAULT_QUICK_PRESETS = [
   { id: 'qp-reimburse', name: '💸 還錢給阿彤 (代付歸還)', mode: 'prompt-reimburse', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '💳 阿彤代付', category: '其他', fund: '宣穆基金', note: '歸還阿彤代付款', icon: 'fa-hand-holding-hand text-indigo-500', border: 'border-indigo-200 hover:border-indigo-400 bg-indigo-50/40', desc: '從宣穆基金/銀行歸還墊款給阿彤' }
 ];
 
-const APP_BUILD_VER = '20260907_v40';
+const APP_BUILD_VER = '20260916_v41';
 
 class XuanMuFinanceApp {
   constructor() {
@@ -91,6 +91,13 @@ class XuanMuFinanceApp {
     }
 
     this.transactions = this.deduplicateTransactions(rawTxs);
+    
+    // Fix fund category for 臍帶章 to ensure red envelope $4800 is properly deducted
+    this.transactions.forEach(t => {
+      if (t && (t.id === 'tx-18' || (t.note && t.note.includes('臍帶章')))) {
+        t.fund = '其他';
+      }
+    });
     this.accounts = JSON.parse(localStorage.getItem('xm_accounts')) || DEFAULT_ACCOUNTS;
     
     if (!this.accounts.some(a => a.name === '宣穆永豐個人戶 (投資戶)')) {
@@ -1392,11 +1399,22 @@ class XuanMuFinanceApp {
           totalIn += amt;
           flowDir = `存入 / 轉入 (來源: ${src === tgt ? '政府補助/親友' : src})`;
           colorClass = 'text-emerald-600';
+        } else if (tgt.includes('投資戶')) {
+          isPositive = true;
+          totalIn += amt;
+          flowDir = `劃撥轉入投資戶 (去向: ${tgt})`;
+          colorClass = 'text-purple-600';
         } else {
           totalOut += amt;
           flowDir = `支出 / 轉出 (去向: ${tgt})`;
           colorClass = 'text-rose-600';
         }
+
+        const typeBadge = t.type === '收入' 
+          ? '<span class="text-[10px] px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-bold">收入</span>' 
+          : (tgt.includes('投資戶') 
+              ? '<span class="text-[10px] px-2 py-0.2 rounded-full bg-purple-100 text-purple-800 font-bold">轉入投資</span>' 
+              : '<span class="text-[10px] px-2 py-0.2 rounded-full bg-rose-100 text-rose-800 font-bold">支出</span>');
 
         const item = document.createElement('div');
         item.className = 'p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between hover:bg-amber-50/60 transition-colors';
@@ -1404,7 +1422,7 @@ class XuanMuFinanceApp {
           <div class="space-y-0.5">
             <div class="font-extrabold text-slate-800 text-xs flex items-center gap-2">
               <span>${t.note || t.category}</span>
-              <span class="text-[10px] px-2 py-0.2 rounded-full ${isPositive ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'} font-bold">${t.type}</span>
+              ${typeBadge}
             </div>
             <div class="text-[11px] text-slate-500">${t.date} ｜ ${flowDir}</div>
           </div>
