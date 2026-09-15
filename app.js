@@ -64,7 +64,7 @@ const DEFAULT_QUICK_PRESETS = [
   { id: 'qp-reimburse', name: '💸 還錢給阿彤 (代付歸還)', mode: 'prompt-reimburse', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '💳 阿彤代付', category: '其他', fund: '宣穆基金', note: '歸還阿彤代付款', icon: 'fa-hand-holding-hand text-indigo-500', border: 'border-indigo-200 hover:border-indigo-400 bg-indigo-50/40', desc: '從宣穆基金/銀行歸還墊款給阿彤' }
 ];
 
-const APP_BUILD_VER = '20260916_v41';
+const APP_BUILD_VER = '20260916_v42';
 
 class XuanMuFinanceApp {
   constructor() {
@@ -109,6 +109,15 @@ class XuanMuFinanceApp {
     }
 
     this.quickPresets = JSON.parse(localStorage.getItem('xm_quick_presets')) || DEFAULT_QUICK_PRESETS;
+    
+    // Auto sync description for quick presets if user edited preset name
+    this.quickPresets.forEach(qp => {
+      if (qp && qp.name) {
+        if (!qp.name.includes('阿彤先墊錢') && !qp.name.includes('代付') && qp.desc && qp.desc.includes('阿彤拿自己的錢')) {
+          qp.desc = qp.note || qp.name;
+        }
+      }
+    });
     this.subsidyRule = localStorage.getItem('xm_subsidy_rule') || 'child';
     this.syncRoomKey = localStorage.getItem('xm_sync_room') || 'hughtong-2026';
     this.lastUpdatedAt = localStorage.getItem('xm_last_updated_at') || '';
@@ -681,7 +690,7 @@ class XuanMuFinanceApp {
       btn.className = `p-3.5 rounded-2xl bg-white border ${qp.border || 'border-amber-200 hover:border-amber-400'} transition-all text-left group shadow-sm hover:shadow-md flex flex-col justify-between`;
       
       let amountDisplay = qp.amount ? `$${Number(qp.amount).toLocaleString()}` : '點擊輸入金額';
-      let subDesc = qp.desc || (qp.type === '收入' ? '入帳' : '支出/撥款');
+      let subDesc = qp.desc || qp.note || (qp.type === '收入' ? '入帳' : '支出/撥款');
 
       btn.innerHTML = `
         <div class="flex items-center justify-between text-xs font-bold mb-1">
@@ -895,9 +904,15 @@ class XuanMuFinanceApp {
           </div>
         </div>
 
-        <div>
-          <label class="block text-[10px] font-bold text-slate-500 mb-0.5">預設說明備註</label>
-          <input type="text" data-qp-idx="${idx}" class="qp-input-note text-slate-600 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:border-amber-400 w-full" value="${qp.note || qp.name || ''}">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">預設說明備註</label>
+            <input type="text" data-qp-idx="${idx}" class="qp-input-note text-slate-600 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:border-amber-400 w-full" value="${qp.note || qp.name || ''}">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">卡片說明 (副標題)</label>
+            <input type="text" data-qp-idx="${idx}" class="qp-input-desc text-slate-600 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:border-amber-400 w-full" value="${qp.desc || ''}" placeholder="例: 扣款 / 轉入">
+          </div>
         </div>
 
         <div class="flex justify-end pt-1">
@@ -949,6 +964,7 @@ class XuanMuFinanceApp {
     const srcs = document.querySelectorAll('.qp-input-src');
     const tgts = document.querySelectorAll('.qp-input-tgt');
     const notes = document.querySelectorAll('.qp-input-note');
+    const descs = document.querySelectorAll('.qp-input-desc');
 
     names.forEach((input, i) => {
       const idx = input.getAttribute('data-qp-idx');
@@ -961,6 +977,7 @@ class XuanMuFinanceApp {
         this.quickPresets[idx].sourceAccount = srcs[i]?.value || '共同小雞錢包';
         this.quickPresets[idx].targetAccount = tgts[i]?.value || '商家/用品店';
         this.quickPresets[idx].note = notes[i]?.value || input.value;
+        this.quickPresets[idx].desc = descs[i]?.value ? descs[i].value.trim() : (notes[i]?.value || input.value);
       }
     });
 
