@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 只有這兩個 Email 登入後可以讀寫帳本
+    function isFamily() {
+      return request.auth != null
+        && request.auth.token.email in [
+          'lavender30268@gmail.com',
+          'AMENG_EMAIL@example.com'
+        ];
+    }
+    match /{document=**} {
+      allow read, write: if isFamily();
+    }
+  }
+}

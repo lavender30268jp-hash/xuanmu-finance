@@ -1,962 +1,708 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
+<!doctype html>
+<html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title id="doc-title-text">李宣穆育兒資金與開銷控管系統</title>
-  
-  <!-- Google Fonts: Outfit & Noto Sans TC -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- FontAwesome & TailwindCSS CDN -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>小萌馬金庫</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="小萌馬金庫">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#EEF3F1">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+.login{max-width:380px;margin:40px auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.login h2{margin:0}
+.who{font-size:12.5px;color:var(--muted);align-self:center}
+:root{
+  --bg:#EEF3F1; --surface:#FFFFFF; --surface2:#F5F8F7; --line:#D5E0DD; --ink:#16302B; --muted:#5C736E;
+  --accent:#0E6B63; --accent-ink:#FFFFFF; --accent-soft:#DCEEEB;
+  --in:#1E7A46; --out:#B23A2E; --tr:#A86400; --in-soft:#E1F2E7; --out-soft:#F8E4E1; --tr-soft:#F7ECD9;
+  --f1:#0E6B63; --f2:#7A4DB0; --f3:#C2572B; --f0:#6B7D79;
+  --display:"LXGW WenKai TC","Noto Sans TC","PingFang TC","Microsoft JhengHei",serif;
+  --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --bg:#0E1916; --surface:#162420; --surface2:#1B2C28; --line:#2A3F3A; --ink:#E3EEEB; --muted:#93A9A4;
+  --accent:#4DB6A9; --accent-ink:#0B1A17; --accent-soft:#1D3934;
+  --in:#62CD8F; --out:#F07D6F; --tr:#E8AC4E; --in-soft:#193628; --out-soft:#3A201D; --tr-soft:#3A2D16;
+  --f1:#4DB6A9; --f2:#B596E6; --f3:#EE8C5F; --f0:#93A9A4;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E1916; --surface:#162420; --surface2:#1B2C28; --line:#2A3F3A; --ink:#E3EEEB; --muted:#93A9A4;
+  --accent:#4DB6A9; --accent-ink:#0B1A17; --accent-soft:#1D3934;
+  --in:#62CD8F; --out:#F07D6F; --tr:#E8AC4E; --in-soft:#193628; --out-soft:#3A201D; --tr-soft:#3A2D16;
+  --f1:#4DB6A9; --f2:#B596E6; --f3:#EE8C5F; --f0:#93A9A4;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;padding:0 16px 48px}
+.wrap{max-width:1080px;margin:0 auto}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.neg{color:var(--out)!important}
+.muted{color:var(--muted)}
 
-  <!-- Mobile Web App settings -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="theme-color" content="#FAF7F2">
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-block:22px 16px}
+header.top h1{font-family:var(--display);font-weight:700;font-size:30px;margin:0;line-height:1.1}
+header.top .sub{color:var(--muted);font-size:13px;margin-top:4px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 14px;font-weight:500;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:6px 8px}
+.btn.small{padding:4px 10px;font-size:12.5px;border-radius:8px}
+.btn:disabled{opacity:.5;cursor:default}
+.linkbtn{border:0;background:none;color:var(--accent);font-weight:500;padding:0;font-size:13.5px;text-decoration:underline;text-underline-offset:3px}
 
-  <link rel="stylesheet" href="styles.css">
+.notice{background:var(--tr-soft);border:1px solid var(--tr);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:14px}
+.notice b{color:var(--tr)}
+
+h2{font-family:var(--display);font-size:20px;margin:0 0 10px;font-weight:700}
+.section{margin-bottom:26px}
+.sechead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.sechead h2{margin:0}
+.sechead .hint{font-size:13px;color:var(--muted)}
+
+/* hero: 宣穆的錢 */
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;grid-template-columns:minmax(200px,1fr) 2.2fr;gap:18px;margin-bottom:16px}
+@media (max-width:760px){.hero{grid-template-columns:1fr}}
+.hero .total .lbl{font-size:13px;color:var(--muted)}
+.hero .total .big{font-size:34px;font-weight:600;line-height:1.2;margin-top:2px}
+.hero .total .split{margin-top:10px;display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--surface2)}
+.hero .total .split i{display:block;height:100%}
+.hero .total .foot{font-size:12.5px;color:var(--muted);margin-top:8px}
+.funds{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.fund{text-align:left;border:1px solid var(--line);background:var(--surface2);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:5px;position:relative}
+.fund:hover{border-color:var(--fc)}
+.fund::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--fc)}
+.fund .fn{font-weight:700;font-size:14px}
+.fund .fb{font-size:22px;font-weight:600}
+.fund .fs{font-size:12px;color:var(--muted);line-height:1.45}
+.bar{height:7px;background:var(--bg);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--fc,var(--accent))}
+
+/* actions */
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:760px){.actions{grid-template-columns:1fr 1fr}}
+.act{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:14px;display:flex;gap:12px;align-items:center;min-height:74px}
+.act:hover{border-color:var(--accent);background:var(--accent-soft)}
+.act .ic{flex:none;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-weight:700;font-size:18px;font-family:var(--display)}
+.act .ic.in{background:var(--in-soft);color:var(--in)} .act .ic.tr{background:var(--tr-soft);color:var(--tr)} .act .ic.out{background:var(--out-soft);color:var(--out)} .act .ic.st{background:var(--accent-soft);color:var(--accent)}
+.act b{display:block;font-size:15.5px}
+.act span{display:block;font-size:12px;color:var(--muted);line-height:1.35}
+.actmore{margin-top:8px;text-align:right}
+
+/* accounts */
+.accgroup{margin-bottom:14px}
+.glbl{font-size:12.5px;color:var(--muted);letter-spacing:.05em;margin:0 0 6px}
+.accs{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.acc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.acc.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.acc .ah{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.acc .an{font-weight:700;font-size:14px;border:0;background:none;padding:0;text-align:left}
+.acc .an:hover{color:var(--accent)}
+.acc .ab{font-size:20px;font-weight:600}
+.acc .al{font-size:12px;color:var(--muted)}
+.acc .fl{display:flex;flex-direction:column;gap:2px;font-size:12.5px}
+.acc .fl div{display:flex;justify-content:space-between;gap:8px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--fc)}
+.recon{border-top:1px dashed var(--line);padding-top:6px;font-size:12.5px;display:flex;flex-direction:column;gap:2px}
+.recon div{display:flex;justify-content:space-between;gap:8px}
+
+/* ledger */
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.filters select,.filters input{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 10px;font-size:14px;min-width:0}
+.filters input{width:150px}
+.chipfilter{display:inline-flex;align-items:center;gap:4px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:99px;padding:3px 4px 3px 12px;font-size:13px}
+.chipfilter button{border:0;background:transparent;color:var(--muted);font-size:15px;line-height:1;padding:2px 6px}
+.book{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.month{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 16px;background:var(--surface2);border-bottom:1px solid var(--line);border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.book .month:first-child{border-top:0}
+.month b{font-family:var(--display);color:var(--ink);font-size:15px}
+.row{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:start;padding:11px 16px;border-bottom:1px dashed var(--line)}
+.row:last-child{border-bottom:0}
+.row .d{font-family:var(--num);font-size:13.5px;color:var(--muted);padding-top:2px}
+.row .main{min-width:0}
+.row .note{font-weight:500;overflow-wrap:anywhere}
+.row .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;font-size:12px;color:var(--muted);align-items:center}
+.tag{border-radius:6px;padding:1px 7px;font-size:11.5px;font-weight:700}
+.tag.in{background:var(--in-soft);color:var(--in)} .tag.out{background:var(--out-soft);color:var(--out)} .tag.tr{background:var(--tr-soft);color:var(--tr)} .tag.st{background:var(--accent-soft);color:var(--accent)}
+.pill{border:1px solid var(--line);border-radius:6px;padding:0 6px;display:inline-flex;align-items:center}
+.row .right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.row .amt{font-size:16px;font-weight:600;white-space:nowrap}
+.amt.in{color:var(--in)} .amt.out{color:var(--out)} .amt.tr{color:var(--tr)}
+.row .run{font-size:12px;color:var(--muted);white-space:nowrap}
+.row .acts{display:flex;gap:2px}
+.row .acts button{border:0;background:transparent;color:var(--muted);font-size:12.5px;padding:2px 6px;border-radius:6px}
+.row .acts button:hover{background:var(--surface2);color:var(--ink)}
+.row .acts button.del:hover{color:var(--out)}
+.row.confirm{background:var(--out-soft)}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(10,20,18,.45);z-index:40;display:flex;align-items:center;justify-content:center;padding:16px}
+.sheet{background:var(--surface);border-radius:16px;width:100%;max-width:540px;max-height:calc(100% - 32px);overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.sheet .sh{position:sticky;top:0;background:var(--surface);display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);z-index:1}
+.sheet .sh h3{margin:0;font-family:var(--display);font-size:21px}
+.sheet .sb{padding:16px 18px;display:flex;flex-direction:column;gap:16px}
+.sheet .sf{position:sticky;bottom:0;background:var(--surface);padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+@media (max-width:600px){.scrim{align-items:flex-end;padding:0}.sheet{border-radius:16px 16px 0 0;max-height:94%}}
+.f{display:flex;flex-direction:column;gap:6px}
+.f>label,.f>.lb{font-size:13px;color:var(--muted);font-weight:500}
+.f input,.f select,.f textarea{border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:9px 11px;width:100%;min-width:0}
+.f input.big{font-family:var(--num);font-size:26px;font-weight:600;padding:8px 12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.two{grid-template-columns:1fr}}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:7px 12px;font-size:14px;text-align:left;line-height:1.3}
+.chip small{display:block;font-size:11.5px;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip[aria-pressed="true"] small{color:inherit;opacity:.85}
+.hint{font-size:12.5px;color:var(--muted);margin:0}
+.callout{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13.5px}
+.err{color:var(--out);font-size:13px}
+.kv{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.kv div{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed var(--line)}
+.kv div:last-child{border-bottom:0}
+.subh{font-size:14px;font-weight:700;margin:0}
+.setrow{display:grid;grid-template-columns:1.3fr 1fr auto;gap:8px;align-items:center}
+.setrow input,.setrow select{border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:7px 9px;width:100%;min-width:0;font-size:14px}
+.setlist{display:flex;flex-direction:column;gap:10px}
+.setsec{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.importbox{border:1px dashed var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px)}
+.loading{padding:40px 0;text-align:center;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(12px);opacity:.6}to{transform:none;opacity:1}}}
+</style>
 </head>
-<body class="bg-[#FAF7F2] text-slate-800 min-h-screen font-sans antialiased pb-28 md:pb-12">
+<body>
 
-  <!-- Main Container -->
-  <div class="max-w-6xl mx-auto px-4 py-4 md:py-8">
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1 id="appTitle">小萌馬金庫</h1>
+      <div class="sub" id="appSub">育兒資金帳本・手機電腦同一份資料</div>
+    </div>
+    <div class="toolbar" id="toolbar" hidden>
+      <button class="btn" id="btnTrash">垃圾桶 <span id="trashCount" class="num"></span></button>
+      <button class="btn" id="btnBackup">備份</button>
+      <button class="btn" id="btnSettings">設定</button>
+      <button class="btn ghost" id="btnOut">登出</button>
+    </div>
+  </header>
 
-    <!-- Top Header -->
-    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 bg-white p-4 sm:p-5 rounded-3xl border border-[#F1E8DC] shadow-sm">
-      <div class="flex items-center gap-3.5">
-        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 via-orange-300 to-rose-300 flex items-center justify-center shadow-md shadow-amber-200 shrink-0">
-          <i class="fa-solid fa-baby text-2xl text-slate-800"></i>
-        </div>
-        <div>
-          <h1 id="app-title-text" class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-800 cursor-pointer hover:text-amber-600 transition-colors" title="點擊『設定與文字修改』可自由更換綽號或標題">
-            李宣穆育兒資金控管
-          </h1>
-          <p class="text-xs text-amber-800/70 flex items-center gap-2 mt-0.5 font-medium">
-            <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            跨裝置實時連線 · 淺色溫馨雙軌資金
-          </p>
-        </div>
-      </div>
+  <div id="status" class="loading">正在讀取帳本…</div>
+  <form class="login" id="login" hidden>
+    <h2>登入小萌馬金庫</h2>
+    <p class="hint">用你在 Firebase 建立的 Email 和密碼登入。登入一次之後，這台裝置會記住你。</p>
+    <div class="f"><label for="lEmail">Email</label><input id="lEmail" type="email" autocomplete="username" required></div>
+    <div class="f"><label for="lPw">密碼</label><input id="lPw" type="password" autocomplete="current-password" required></div>
+    <div class="err" id="lErr" role="alert"></div>
+    <button class="btn primary" id="lGo" type="submit">登入</button>
+  </form>
 
-      <!-- Cloud Sync & Quick Action Buttons -->
-      <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-        <button id="btn-quick-add" class="flex-1 sm:flex-none px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-slate-900 font-extrabold text-sm flex items-center justify-center gap-2 shadow-md shadow-amber-200 transition-all active:scale-95 ring-4 ring-amber-100">
-          <i class="fa-solid fa-pen-to-square text-base"></i>
-          <span>＋ 記一筆</span>
-        </button>
+  <main id="app" hidden>
+    <div id="warnings"></div>
+    <section class="hero" id="hero"></section>
 
-        <button onclick="app.openCoMingledModal()" class="px-3.5 py-2.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-extrabold flex items-center gap-1.5 border border-amber-200 transition-all shadow-sm">
-          <i class="fa-solid fa-scale-balanced text-amber-600"></i>
-          <span>⚖️ 帳戶對帳與代付智算</span>
-        </button>
-
-        <button onclick="app.openCloudSyncModal()" class="px-3.5 py-2.5 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-extrabold flex items-center gap-1.5 border border-blue-200 transition-all shadow-sm">
-          <i class="fa-solid fa-fire text-orange-500"></i>
-          <span>☁️ 雲端同步設定</span>
-        </button>
-
-        <button id="btn-cloud-status" onclick="app.pullFromCloud(); alert('已完成雲端即時強制作業同步！手機與電腦資料庫已 100% 保持一致。');" class="px-3.5 py-2.5 rounded-2xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1.5 border border-emerald-200 transition-all" title="點擊強制作業同步">
-          <i class="fa-solid fa-rotate text-emerald-600 animate-spin-slow"></i>
-          <span id="cloud-sync-status-text">雲端即時同步中</span>
-        </button>
-
-        <button id="btn-manage-rules" class="px-3.5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 border border-slate-200 transition-all">
-          <i class="fa-solid fa-sliders text-amber-600"></i>
-          <span>設定與文字修改</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- Quick Micro-Transaction Action Bar -->
-    <section class="mb-6">
-      <div class="flex items-center justify-between mb-2.5 px-1">
-        <h2 class="text-xs font-extrabold uppercase tracking-wider text-amber-900/70 flex items-center gap-1.5">
-          <i class="fa-solid fa-bolt text-amber-500"></i> 一鍵快捷帶入 (點擊可隨意微調金額)
-        </h2>
-        <button onclick="app.openQuickPresetsModal()" class="text-xs font-bold text-amber-700 hover:text-amber-900 flex items-center gap-1 bg-amber-100/70 border border-amber-200/80 px-2.5 py-1 rounded-xl transition-all">
-          <i class="fa-solid fa-pen-to-square text-amber-600"></i> 編輯快捷按鈕
-        </button>
-      </div>
-      <div id="quick-presets-grid" class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-      </div>
+    <section class="section" id="actSec">
+      <div class="actions" id="actions"></div>
+      <div class="actmore"><button class="linkbtn" id="btnTransfer">帳戶之間轉帳・借出／收回</button></div>
     </section>
 
-    <!-- Top Summary Dashboard Cards (4 Cards Grid) -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      
-      <!-- Card 1: Total Assets (Clickable) -->
-      <div onclick="app.openOverviewFundDetailsModal('total')" class="bg-white p-5 rounded-3xl border border-amber-200/80 shadow-sm relative overflow-hidden cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group">
-        <div class="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-          <span class="group-hover:text-amber-600 transition-colors">育兒總資金 (Total)</span>
-          <i class="fa-solid fa-wallet text-amber-500 text-base"></i>
-        </div>
-        <div id="card-total-assets" class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">
-          $450,000
-        </div>
-        <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <span>跨帳戶現金總計 (點擊看明細)</span>
-          <span id="badge-total-transactions" class="bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full text-[11px] font-bold group-hover:bg-amber-500 group-hover:text-white transition-colors">11 筆紀錄 ➔</span>
-        </div>
-      </div>
-
-      <!-- Card 2: XuanMu Savings (宣穆戶頭 - Clickable) -->
-      <div onclick="app.openOverviewFundDetailsModal('宣穆戶頭')" class="bg-white p-5 rounded-3xl border border-emerald-200/80 shadow-sm relative overflow-hidden cursor-pointer hover:border-emerald-400 hover:shadow-md transition-all group">
-        <div class="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-          <span class="text-emerald-700 flex items-center gap-1.5 font-bold group-hover:text-emerald-800 transition-colors">
-            <i class="fa-solid fa-piggy-bank text-emerald-500"></i> 宣穆戶頭 (積蓄)
-          </span>
-          <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">專款專用</span>
-        </div>
-        <div id="card-xuanmu-account" class="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">
-          $125,000
-        </div>
-        <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-500">
-          <span>生育給付 $100k + 加碼 $20k + 津貼</span>
-          <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-bold group-hover:bg-emerald-600 group-hover:text-white transition-colors">明細 ➔</span>
-        </div>
-      </div>
-
-      <!-- Card 3: XuanMu Fund (宣穆基金 - Clickable) -->
-      <div onclick="app.openBudgetBreakdownModal('annual')" class="bg-white p-5 rounded-3xl border border-teal-200/80 shadow-sm relative overflow-hidden cursor-pointer hover:border-teal-400 hover:shadow-md transition-all group">
-        <div class="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-          <span class="text-teal-700 flex items-center gap-1.5 font-bold group-hover:text-teal-800 transition-colors">
-            <i class="fa-solid fa-hand-holding-dollar text-teal-500"></i> 宣穆基金 (營運)
-          </span>
-          <span class="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full font-bold">萌爸36萬/年</span>
-        </div>
-        <div id="card-xuanmu-fund" class="text-2xl sm:text-3xl font-black text-teal-600 tracking-tight">
-          $325,000
-        </div>
-        <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-500">
-          <span>共同小雞與 LINE 阿萌撥款池</span>
-          <span class="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded-md font-bold group-hover:bg-teal-600 group-hover:text-white transition-colors">明細 ➔</span>
-        </div>
-      </div>
-
-      <!-- Card 4: XuanMu Investment (宣穆投資與其他 - Clickable) -->
-      <div onclick="app.openOverviewFundDetailsModal('宣穆投資')" class="bg-white p-5 rounded-3xl border border-purple-200/80 shadow-sm relative overflow-hidden cursor-pointer hover:border-purple-400 hover:shadow-md transition-all group">
-        <div class="flex items-center justify-between text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
-          <span class="text-purple-700 flex items-center gap-1.5 font-bold group-hover:text-purple-800 transition-colors">
-            <i class="fa-solid fa-chart-line text-purple-500"></i> 宣穆投資與其他
-          </span>
-          <span class="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full font-bold">理財規劃</span>
-        </div>
-        <div id="card-xuanmu-invest" class="text-2xl sm:text-3xl font-black text-purple-600 tracking-tight">
-          $20,000
-        </div>
-        <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-500">
-          <span>含萌媽 $20k 贊助與未來投資理財</span>
-          <span class="text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md font-bold group-hover:bg-purple-600 group-hover:text-white transition-colors">明細 ➔</span>
-        </div>
-      </div>
-
+    <section class="section">
+      <div class="sechead"><h2>帳戶</h2><span class="hint">點帳戶名稱看它的存摺明細</span></div>
+      <div id="accounts"></div>
     </section>
 
-    <!-- Clickable Budget Progress Cards Section -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      
-      <!-- Meng Dad 360k Annual Fund Tracker (Clickable) -->
-      <div onclick="app.openBudgetBreakdownModal('annual')" class="bg-white p-5 sm:p-6 rounded-3xl border border-[#F1E8DC] shadow-sm hover:border-amber-400 transition-all cursor-pointer group relative">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
-              <i class="fa-solid fa-shield-halved text-amber-500"></i>
-              萌爸 36萬/年 基金進度條
-            </h3>
-            <p class="text-xs text-slate-500 mt-0.5">預期每月支出約 $30,000 元 · 點擊查看明細</p>
-          </div>
-          <span id="annual-status-badge" class="text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-            預算極佳
-          </span>
-        </div>
-
-        <div class="grid grid-cols-3 gap-2 mb-4 bg-amber-50/50 p-3 rounded-2xl text-center border border-amber-100">
-          <div>
-            <div class="text-[11px] text-slate-500">年度總額</div>
-            <div class="text-sm font-black text-slate-800 mt-0.5">$360,000</div>
-          </div>
-          <div>
-            <div class="text-[11px] text-slate-500">累積已支出</div>
-            <div id="annual-spent" class="text-sm font-black text-amber-600 mt-0.5">$35,000</div>
-          </div>
-          <div>
-            <div class="text-[11px] text-slate-500">基金剩餘餘額</div>
-            <div id="annual-remaining" class="text-sm font-black text-emerald-600 mt-0.5">$325,000</div>
-          </div>
-        </div>
-
-        <div class="space-y-1.5 mb-3">
-          <div class="flex justify-between text-xs font-bold text-slate-600">
-            <span>已使用比例</span>
-            <span id="annual-percent-text" class="text-slate-800">10%</span>
-          </div>
-          <div class="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">
-            <div id="annual-progress-fill" class="h-full bg-gradient-to-r from-teal-400 via-amber-400 to-rose-400 rounded-full transition-all duration-700" style="width: 10%;"></div>
-          </div>
-        </div>
-
-        <div id="annual-pace-tip" class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-start gap-2">
-          <i class="fa-solid fa-circle-info text-amber-500 mt-0.5"></i>
-          <span>點擊卡片查看萌爸基金完整歷次支出！</span>
+    <section class="section" id="ledger">
+      <div class="sechead">
+        <h2 id="ledTitle">收支明細</h2>
+        <div class="filters">
+          <span id="activeChips"></span>
+          <select id="fMonth" aria-label="月份"></select>
+          <input id="fQ" type="search" placeholder="搜尋備註" aria-label="搜尋備註">
         </div>
       </div>
-
-      <!-- Current Month ($30,000) Monthly Tracker (Clickable) -->
-      <div onclick="app.openBudgetBreakdownModal('monthly')" class="bg-white p-5 sm:p-6 rounded-3xl border border-[#F1E8DC] shadow-sm hover:border-teal-400 transition-all cursor-pointer group relative">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
-              <i class="fa-solid fa-calendar-day text-teal-600"></i>
-              本月 (8月) $30,000 預算消耗
-            </h3>
-            <p class="text-xs text-slate-500 mt-0.5">含當月共同小雞 + LINE阿萌 · 點擊查看8月明細</p>
-          </div>
-          <span id="monthly-period-tag" class="text-xs font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-lg">
-            2026/08 月份
-          </span>
-        </div>
-
-        <div class="grid grid-cols-3 gap-2 mb-4 bg-teal-50/50 p-3 rounded-2xl text-center border border-teal-100">
-          <div>
-            <div class="text-[11px] text-slate-500">本月預算目標</div>
-            <div class="text-sm font-black text-slate-800 mt-0.5">$30,000</div>
-          </div>
-          <div>
-            <div class="text-[11px] text-slate-500">8月已支出</div>
-            <div id="monthly-spent" class="text-sm font-black text-teal-600 mt-0.5">$10,000</div>
-          </div>
-          <div>
-            <div class="text-[11px] text-slate-500">8月剩餘額度</div>
-            <div id="monthly-remaining" class="text-sm font-black text-emerald-600 mt-0.5">$20,000</div>
-          </div>
-        </div>
-
-        <div class="space-y-1.5 mb-3">
-          <div class="flex justify-between text-xs font-bold text-slate-600">
-            <span>8月配額消耗度</span>
-            <span id="monthly-percent-text" class="text-slate-800">33%</span>
-          </div>
-          <div class="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">
-            <div id="monthly-progress-fill" class="h-full bg-gradient-to-r from-teal-400 to-emerald-400 rounded-full transition-all duration-700" style="width: 33%;"></div>
-          </div>
-        </div>
-
-        <div id="monthly-pace-tip" class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-start gap-2">
-          <i class="fa-solid fa-hand-pointer text-teal-500 mt-0.5"></i>
-          <span>點擊卡片查看 8 月已支出的 $10,000 筆紀錄！</span>
-        </div>
-      </div>
-
+      <div class="book" id="book"></div>
     </section>
-
-    <!-- Accounts & Wallets Balance Section -->
-    <section class="mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-building-columns text-amber-500"></i>
-          資金存放帳戶與開銷錢包 (Accounts & Wallets)
-        </h2>
-        <button id="btn-add-account" class="text-xs font-bold text-amber-800 hover:text-amber-900 flex items-center gap-1 bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl transition-all">
-          <i class="fa-solid fa-plus"></i> 新增帳戶
-        </button>
-      </div>
-
-      <div id="accounts-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      </div>
-    </section>
-
-    <!-- Visual Charts Section -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-      <!-- Donut Chart -->
-      <div class="bg-white p-5 rounded-3xl border border-[#F1E8DC] shadow-sm flex flex-col justify-between">
-        <h3 class="text-sm font-extrabold text-slate-800 mb-3 flex items-center gap-2">
-          <i class="fa-solid fa-chart-pie text-amber-500"></i> 資金歸屬占比
-        </h3>
-        <div class="relative w-full h-52 flex items-center justify-center">
-          <canvas id="chart-fund-pie"></canvas>
-        </div>
-        <p class="text-[11px] text-slate-400 text-center mt-2 font-medium">宣穆戶頭 vs 宣穆基金 vs 投資與其他</p>
-      </div>
-
-      <!-- Bar Chart -->
-      <div class="lg:col-span-2 bg-white p-5 rounded-3xl border border-[#F1E8DC] shadow-sm flex flex-col justify-between">
-        <h3 class="text-sm font-extrabold text-slate-800 mb-3 flex items-center gap-2">
-          <i class="fa-solid fa-chart-simple text-teal-600"></i> 各存款帳戶金額對比
-        </h3>
-        <div class="relative w-full h-52">
-          <canvas id="chart-account-bar"></canvas>
-        </div>
-        <p class="text-[11px] text-slate-400 text-center mt-2 font-medium">郵局實體存簿 ($125k) ｜ 郵局數位 ($170k) ｜ 永豐大戶 ($155k)</p>
-      </div>
-    </section>
-
-    <!-- Main Transaction Ledger Table -->
-    <section class="bg-white rounded-3xl border border-[#F1E8DC] shadow-sm p-5 sm:p-6 mb-8">
-      
-      <!-- Table Header & Controls -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
-        <div>
-          <h2 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-            <i class="fa-solid fa-list-check text-amber-500"></i>
-            交易紀錄與資金流向明細
-          </h2>
-          <p class="text-xs text-slate-500 mt-0.5">點擊任何紀錄即可進行編輯與修改</p>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- Fund Filter -->
-          <select id="filter-fund" class="bg-slate-50 text-slate-700 text-xs rounded-xl px-3 py-2 border border-slate-200 focus:outline-none focus:border-amber-400 font-bold">
-            <option value="all">所有資金歸屬</option>
-            <option value="宣穆戶頭">宣穆戶頭 (積蓄)</option>
-            <option value="宣穆基金">宣穆基金 (營運)</option>
-            <option value="宣穆投資">宣穆投資 (理財)</option>
-            <option value="其他">其他資助</option>
-          </select>
-
-          <!-- Type Filter -->
-          <select id="filter-type" class="bg-slate-50 text-slate-700 text-xs rounded-xl px-3 py-2 border border-slate-200 focus:outline-none focus:border-amber-400 font-bold">
-            <option value="all">所有收支類型</option>
-            <option value="支出">支出</option>
-            <option value="收入">收入</option>
-            <option value="轉帳">轉帳</option>
-            <option value="投資">投資/理財</option>
-          </select>
-
-          <!-- Search Input -->
-          <div class="relative">
-            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
-            <input type="text" id="search-keyword" placeholder="搜尋備註..." class="bg-slate-50 text-slate-700 text-xs rounded-xl pl-8 pr-3 py-2 border border-slate-200 focus:outline-none focus:border-amber-400 w-36 sm:w-44">
-          </div>
-        </div>
-      </div>
-
-      <!-- Transactions List Table -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-[700px]">
-          <thead>
-            <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">
-              <th class="py-3 px-3">日期</th>
-              <th class="py-3 px-3">類型</th>
-              <th class="py-3 px-3">資金流向</th>
-              <th class="py-3 px-3">收支類別</th>
-              <th class="py-3 px-3">歸屬項目</th>
-              <th class="py-3 px-3 text-right">金額</th>
-              <th class="py-3 px-3">備註說明</th>
-              <th class="py-3 px-3 text-center">操作</th>
-            </tr>
-          </thead>
-          <tbody id="transaction-tbody" class="divide-y divide-slate-100 text-xs font-medium">
-          </tbody>
-        </table>
-      </div>
-
-    </section>
-
-  </div>
-
-  <!-- Mobile Bottom Action Bar -->
-  <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 px-6 py-3 flex items-center justify-around z-40 shadow-lg">
-    <button onclick="window.scrollTo({top:0, behavior:'smooth'})" class="flex flex-col items-center gap-1 text-slate-500 hover:text-amber-600">
-      <i class="fa-solid fa-house text-lg"></i>
-      <span class="text-[10px] font-bold">總覽</span>
-    </button>
-    <button onclick="app.openAddModal()" class="flex flex-col items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-black -mt-5 shadow-lg shadow-amber-300 active:scale-90 transition-transform ring-4 ring-white">
-      <i class="fa-solid fa-plus text-xl"></i>
-    </button>
-    <button onclick="document.querySelector('#transaction-tbody').scrollIntoView({behavior:'smooth'})" class="flex flex-col items-center gap-1 text-slate-500 hover:text-amber-600">
-      <i class="fa-solid fa-list-ul text-lg"></i>
-      <span class="text-[10px] font-bold">明細</span>
-    </button>
-  </div>
-
-  <!-- ==================== MODALS ==================== -->
-
-  <!-- Modal 1: Add / Edit Transaction -->
-  <div id="modal-transaction" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl w-full max-w-lg shadow-xl overflow-hidden modal-pop-animation">
-      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-        <h3 id="modal-tx-title" class="text-base font-extrabold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-pen-to-square text-amber-500"></i> 新增記帳交易 (記一筆)
-        </h3>
-        <button id="modal-tx-close" class="w-8 h-8 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <form id="form-transaction" class="p-5 space-y-4 text-xs font-medium">
-        <input type="hidden" id="tx-id">
-
-        <!-- 1. Category Type Selector Tabs (支出 / 收入 / 轉帳) -->
-        <div class="grid grid-cols-3 gap-2 p-1 bg-slate-100/80 rounded-2xl">
-          <button type="button" data-type="支出" class="tx-type-btn py-2.5 rounded-xl font-extrabold transition-all flex items-center justify-center gap-1.5 active-expense">
-            <i class="fa-solid fa-minus text-rose-500"></i> 支出 / 代付
-          </button>
-          <button type="button" data-type="收入" class="tx-type-btn py-2.5 rounded-xl font-extrabold transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
-            <i class="fa-solid fa-plus text-emerald-500"></i> 收入 / 津貼
-          </button>
-          <button type="button" data-type="轉帳" class="tx-type-btn py-2.5 rounded-xl font-extrabold transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
-            <i class="fa-solid fa-arrow-right-arrow-left text-teal-500"></i> 撥款 / 還款
-          </button>
-        </div>
-
-        <!-- 2. Smart Quick Payer Selection (誰出的錢 / 扣款管道) -->
-        <div>
-          <label id="lbl-source-account" class="block font-extrabold text-slate-700 mb-1.5 text-xs">
-            誰出的錢 / 付款管道（系統自動為您設定分類）
-          </label>
-          <select id="tx-source-account" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none focus:border-amber-500 font-bold text-xs">
-            <option value="💳 阿彤代付">💳 阿彤代付 (阿彤先拿自己的錢墊付，後續一鍵歸還)</option>
-            <option value="共同小雞錢包">🐥 共同小雞錢包 (買便當/尿布/日常用品)</option>
-            <option value="LINE 阿萌">💬 LINE 阿萌 (阿萌買兒子花費與開銷)</option>
-            <option value="永豐大戶 (DAWHO)">🏦 永豐大戶 (DAWHO - 宣穆基金大額採買/醫療)</option>
-            <option value="宣穆永豐個人戶 (投資戶)">📈 宣穆永豐個人戶 (李宣穆獨立投資專戶)</option>
-            <option value="郵局 (實體存簿)">✉️ 郵局 (實體存簿 - 津貼補助戶)</option>
-            <option value="郵局數位帳戶">📱 郵局數位帳戶 (宣穆基金)</option>
-            <option value="育兒實體現金">💵 育兒實體現金 (手邊現金/親友紅包)</option>
-          </select>
-        </div>
-
-        <!-- 3. Date, Amount & Fee -->
-        <div class="grid grid-cols-3 gap-2">
-          <div>
-            <label class="block font-extrabold text-slate-700 mb-1">日期</label>
-            <input type="date" id="tx-date" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2.5 text-slate-800 focus:outline-none focus:border-amber-500 font-bold text-xs">
-          </div>
-          <div>
-            <label class="block font-extrabold text-slate-700 mb-1">金額 (NT$)</label>
-            <input type="number" id="tx-amount" placeholder="0" required min="1" step="1" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2.5 text-slate-900 text-sm font-black focus:outline-none focus:border-amber-500">
-          </div>
-          <div>
-            <label class="block font-extrabold text-amber-800 mb-1">手續費 (選填)</label>
-            <input type="number" id="tx-fee" placeholder="0 (例: 5)" min="0" step="1" class="w-full bg-amber-50/60 border border-amber-200 rounded-xl px-2.5 py-2.5 text-amber-900 text-xs font-extrabold focus:outline-none focus:border-amber-500">
-          </div>
-        </div>
-
-        <!-- 4. Item Note -->
-        <div>
-          <label class="block font-extrabold text-slate-700 mb-1">買了什麼 / 項目說明</label>
-          <input type="text" id="tx-note" placeholder="例：腸病毒疫苗、圍欄、尿布、林貝兒、臍帶章..." required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-800 focus:outline-none focus:border-amber-500 font-bold text-xs">
-        </div>
-
-        <!-- 5. Collapsible Advanced Details (Auto-filled, hidden by default) -->
-        <details class="rounded-2xl border border-slate-200/80 bg-slate-50/50 overflow-hidden text-xs">
-          <summary class="px-3.5 py-2 font-bold text-slate-500 cursor-pointer hover:text-slate-800 flex items-center justify-between">
-            <span>⚙️ 進階進階屬性 (系統已預設自動最佳化，通常無須點開)</span>
-            <i class="fa-solid fa-chevron-down text-[10px]"></i>
-          </summary>
-          <div class="p-3.5 space-y-3 border-t border-slate-200/60 bg-white">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label id="lbl-target-account" class="block font-bold text-slate-600 mb-1">受款對象/存入帳戶</label>
-                <select id="tx-target-account" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-bold text-xs">
-                </select>
-              </div>
-              <div>
-                <label class="block font-bold text-slate-600 mb-1">收支類別</label>
-                <select id="tx-category" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-bold text-xs">
-                  <option value="每月開銷">每月開銷 (買飯/尿布/用品)</option>
-                  <option value="醫療衛教">醫療衛教 / 自費預防針</option>
-                  <option value="育兒大額設備/用品">育兒大額設備/用品</option>
-                  <option value="單次津貼">單次津貼 (政府)</option>
-                  <option value="固定收入">固定收入 (津貼/補助)</option>
-                  <option value="萌爸">萌爸撥款</option>
-                  <option value="萌媽">萌媽/家人資助</option>
-                  <option value="轉帳">轉帳內部劃分</option>
-                  <option value="其他">其他開銷</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label class="block font-bold text-slate-600 mb-1">資金歸屬項目</label>
-              <select id="tx-fund" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-bold text-xs">
-                <option value="宣穆基金">宣穆基金 (日常營運/開銷)</option>
-                <option value="宣穆戶頭">宣穆戶頭 (政府補助/積蓄專款)</option>
-                <option value="宣穆投資">宣穆投資 (理財投資項目)</option>
-                <option value="其他">其他 (萌媽資助等)</option>
-              </select>
-            </div>
-          </div>
-        </details>
-
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-          <button type="button" id="btn-tx-cancel" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200">
-            取消
-          </button>
-          <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-black hover:from-amber-500 hover:to-orange-500 shadow-md">
-            儲存紀錄
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal 2: Budget Breakdown Modal -->
-  <div id="modal-budget-breakdown" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl w-full max-w-lg shadow-xl overflow-hidden modal-pop-animation flex flex-col max-h-[85vh]">
-      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-        <h3 id="budget-breakdown-title" class="text-base font-extrabold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-list-ul text-teal-600"></i> 開銷明細查看
-        </h3>
-        <button onclick="app.closeModal(document.getElementById('modal-budget-breakdown'))" class="w-8 h-8 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="p-5 overflow-y-auto space-y-3 flex-1 text-xs">
-        <div id="budget-breakdown-summary" class="p-3 bg-amber-50 rounded-2xl border border-amber-100 font-bold text-amber-900">
-        </div>
-        <div id="budget-breakdown-list" class="space-y-2">
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 3: Quick Presets Management Modal -->
-  <div id="modal-quick-presets" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl w-full max-w-lg shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
-      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-        <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-bolt text-amber-500"></i> 編輯一鍵快捷按鈕清單
-        </h3>
-        <button onclick="app.closeModal(document.getElementById('modal-quick-presets'))" class="w-8 h-8 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="p-5 overflow-y-auto space-y-4 text-xs flex-1">
-        <div class="flex items-center justify-between mb-1">
-          <p class="text-slate-500 font-medium">您可以自由修改快捷按鈕的名稱與預設金額：</p>
-          <button onclick="app.addNewQuickPresetPrompt()" class="text-xs font-bold text-amber-700 flex items-center gap-1 hover:underline">
-            <i class="fa-solid fa-plus"></i> 新增快捷
-          </button>
-        </div>
-        <div id="quick-presets-manage-list" class="space-y-3">
-        </div>
-      </div>
-
-      <div class="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end">
-        <button onclick="app.saveQuickPresetsFromModal()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-black hover:from-amber-500 hover:to-orange-500 shadow-md">
-          儲存快捷按鈕修改
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 4: Settings & Text Descriptions -->
-  <div id="modal-rules" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl w-full max-w-xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
-      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-        <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-sliders text-amber-500"></i> 標題與說明文字自由修改
-        </h3>
-        <button id="modal-rules-close" class="w-8 h-8 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="p-5 overflow-y-auto space-y-6 text-xs flex-1">
-        
-        <!-- Main App Title Editing -->
-        <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
-          <label class="block font-extrabold text-amber-900 text-sm flex items-center gap-1.5">
-            <i class="fa-solid fa-heading text-amber-600"></i> 自訂系統大標題 (暱稱/專款名稱)
-          </label>
-          <p class="text-slate-600 text-[11px]">可自由輸入寶貝綽號或偏好的標題名稱（例：宣穆寶貝育兒帳本、宣穆小金庫）：</p>
-          <input type="text" id="rule-app-title" class="font-black text-slate-800 bg-white border border-amber-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-500 w-full" value="李宣穆育兒資金控管">
-        </div>
-
-        <!-- Dynamic Account Notes & Badges Editing -->
-        <div>
-          <h4 class="font-extrabold text-slate-800 text-sm mb-2 flex items-center gap-2">
-            <i class="fa-solid fa-wallet text-amber-500"></i> 各帳戶說明與備註修改
-          </h4>
-          <div id="rules-accounts-list" class="space-y-3">
-          </div>
-        </div>
-
-        <!-- Dynamic Category Management Section -->
-        <div class="space-y-2 pt-4 border-t border-slate-200">
-          <div class="flex items-center justify-between">
-            <h4 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
-              <i class="fa-solid fa-tags text-amber-500"></i> 收支開銷類別自由增減與修改
-            </h4>
-            <button type="button" onclick="app.addCategoryPrompt()" class="text-xs font-extrabold text-amber-700 hover:text-amber-900 flex items-center gap-1 bg-amber-100 px-2.5 py-1 rounded-xl">
-              <i class="fa-solid fa-plus"></i> 新增類別
-            </button>
-          </div>
-          <p class="text-slate-500 text-[11px]">預設保持龍統簡潔 (育兒用品、醫療費用、其他)，您可隨時自由編輯或刪除：</p>
-          <div id="rules-category-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          </div>
-        </div>
-
-        <div>
-          <h4 class="font-extrabold text-slate-800 text-sm mb-2 flex items-center gap-2">
-            <i class="fa-solid fa-hand-holding-hand text-amber-500"></i> 補助說明與標籤編輯
-          </h4>
-          <div class="space-y-3">
-            <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-              <div class="flex items-center justify-between">
-                <input type="text" id="rule-child-name" value="育兒津貼 (家用照顧)" class="font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:border-amber-400 w-2/3">
-                <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[11px]">預設啟用</span>
-              </div>
-              <input type="text" id="rule-child-desc" value="每月固定入帳 $5,000 至郵局存簿" class="text-slate-600 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:border-amber-400 w-full">
-            </div>
-
-            <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-              <div class="flex items-center justify-between">
-                <input type="text" id="rule-daycare-name" value="托嬰補助 (公托/準公共)" class="font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:border-amber-400 w-2/3">
-                <button onclick="app.toggleSubsidyRule('daycare')" class="px-3 py-1 rounded-xl bg-amber-100 text-amber-800 font-bold border border-amber-200 text-[11px]">
-                  切換為主力補助
-                </button>
-              </div>
-              <input type="text" id="rule-daycare-desc" value="預計每月入帳 $13,000 (可隨時微調)" class="text-slate-600 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:border-amber-400 w-full">
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <h4 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
-              <i class="fa-solid fa-building-columns text-teal-600"></i> 管理帳戶名稱、標籤與備註說明
-            </h4>
-            <button id="btn-add-account-inner" class="text-xs text-amber-600 font-bold flex items-center gap-1 hover:underline">
-              <i class="fa-solid fa-plus"></i> 新增帳戶
-            </button>
-          </div>
-          <div id="rules-accounts-list" class="space-y-3">
-          </div>
-        </div>
-
-      </div>
-
-      <div class="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end">
-        <button onclick="app.saveRulesAndTextDescriptions()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-black hover:from-amber-500 hover:to-orange-500 shadow-md">
-          儲存說明與標題修改
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 5: Real-time Cloud Sync Room & Phone Connection Modal -->
-  <div id="modal-cloud-sync" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl w-full max-w-md shadow-xl overflow-hidden modal-pop-animation max-h-[90vh] overflow-y-auto">
-      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-        <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-mobile-screen-button text-emerald-600"></i> 手機與電腦實時連線方式
-        </h3>
-        <button onclick="app.closeModal(document.getElementById('modal-cloud-sync'))" class="w-8 h-8 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="p-5 space-y-4 text-xs font-medium">
-
-        <!-- Firebase Section (PRIMARY) -->
-        <div class="p-4 bg-blue-50 border border-blue-200 rounded-2xl space-y-3">
-          <div class="font-extrabold text-blue-900 text-sm flex items-center gap-1.5">
-            <i class="fa-solid fa-fire text-orange-500"></i> ☁️ Firebase 即時同步設定 (推薦)
-          </div>
-          <p class="text-slate-600 leading-relaxed">
-            設定後手機與電腦資料自動即時雙向同步，完全免費且無請求次數限制。
-          </p>
-          <div id="firebase-status-badge" class="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 inline-block">
-            ✅ 已預設連線 - xuanmu-finance
-          </div>
-          <div class="space-y-2">
-            <label class="block text-slate-700 font-bold text-xs">Firebase Realtime Database URL：</label>
-            <input id="firebase-url-input" type="url"
-              placeholder="https://xuanmu-finance-default-rtdb.asia-southeast1.firebasedatabase.app"
-              class="w-full px-3 py-2.5 text-xs border border-blue-200 rounded-xl bg-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
-            <button onclick="app.saveFirebaseUrl()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-2">
-              <i class="fa-solid fa-floppy-disk"></i> 儲存 Firebase URL 並立即連線
-            </button>
-          </div>
-          <details class="mt-1">
-            <summary class="text-blue-700 font-bold cursor-pointer text-[11px]">📖 如何取得 Firebase URL？點擊展開教學</summary>
-            <ol class="mt-2 space-y-1 text-[11px] text-slate-600 list-decimal list-inside leading-relaxed">
-              <li>前往 <a href="https://console.firebase.google.com" target="_blank" class="text-blue-600 underline">console.firebase.google.com</a> 用 Google 帳號登入</li>
-              <li>點「新增專案」→ 名稱填 <strong>xuanmu-finance</strong> → 建立</li>
-              <li>左側 <strong>Build → Realtime Database → 建立資料庫</strong></li>
-              <li>選 <strong>asia-southeast1 (新加坡)</strong> → 以測試模式啟動</li>
-              <li>複製資料庫 URL 貼到上方欄位</li>
-            </ol>
-          </details>
-        </div>
-
-        <!-- GitHub Pages stable link -->
-        <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
-          <div class="font-extrabold text-amber-900 text-sm flex items-center gap-1.5">
-            <i class="fa-brands fa-github text-slate-800"></i> 🌐 隨時連線網址 (穩定版)
-          </div>
-          <p class="text-slate-600 leading-relaxed">
-            此為 GitHub Pages 穩定連結，手機 4G/5G 隨時可開啟：
-          </p>
-          <div class="p-2.5 bg-white border border-amber-300 rounded-xl font-mono text-xs font-bold text-amber-900 select-all break-all">
-            https://lavender30268jp-hash.github.io/xuanmu-finance/?sync=hughtong-2026
-          </div>
-          <button onclick="navigator.clipboard.writeText('https://lavender30268jp-hash.github.io/xuanmu-finance/?sync=hughtong-2026').then(()=>alert('已複製！'))" class="w-full py-2 bg-amber-200 hover:bg-amber-300 text-amber-900 font-extrabold rounded-xl text-xs mt-1">
-            📋 複製連線網址 (傳到 LINE)
-          </button>
-        </div>
-
-        <!-- QR Code -->
-        <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col items-center text-center space-y-2">
-          <div class="font-extrabold text-emerald-900 text-sm">
-            📱 手機掃描 QR Code 一鍵開啟
-          </div>
-          <p class="text-slate-600 text-[11px]">請使用手機相機掃描下方 QR Code：</p>
-          <div class="p-2 bg-white rounded-xl border border-emerald-200 shadow-sm">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&amp;data=https://lavender30268jp-hash.github.io/xuanmu-finance/?sync=hughtong-2026" alt="QR Code" class="w-36 h-36">
-          </div>
-        </div>
-
-        <!-- Manual Sync & Import/Export Section -->
-        <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-2">
-          <div class="font-extrabold text-indigo-900 text-sm flex items-center justify-between">
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-rotate text-indigo-600"></i> 🔄 強制同步與資料備份</span>
-            <span id="cloud-sync-status-text" class="text-[10px] text-indigo-600 font-bold">已連線</span>
-          </div>
-          <button onclick="app.pullFromCloud(); alert('已向雲端連線同步最新數據！');" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-2">
-            <i class="fa-solid fa-arrows-rotate"></i> 🔄 立即同步最新資料
-          </button>
-          <div class="grid grid-cols-2 gap-2 pt-1">
-            <button onclick="app.exportDataJSON()" class="py-2 bg-white border border-indigo-200 text-indigo-800 font-bold hover:bg-indigo-100 rounded-xl text-xs">
-              📥 備份匯出 JSON
-            </button>
-            <button onclick="app.importDataJSON()" class="py-2 bg-white border border-indigo-200 text-indigo-800 font-bold hover:bg-indigo-100 rounded-xl text-xs">
-              📤 匯入 JSON 資料
-            </button>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <script src="app.js?v=20260928-v45"></script>
-  <!-- Modal 6: Account Breakdown & Transaction Details -->
-  <div id="modal-account-details" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
-      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-        <h3 id="account-details-title" class="text-base font-extrabold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-wallet text-amber-500"></i> 帳戶收支與交易明細
-        </h3>
-        <button onclick="app.closeModal(document.getElementById('modal-account-details'))" class="w-8 h-8 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-800 flex items-center justify-center">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="p-5 border-b border-slate-100 bg-amber-50/50 flex items-center justify-between gap-4">
-        <div>
-          <span class="text-xs text-slate-500 font-bold block">目前結餘 / 剩餘額度</span>
-          <span id="account-details-balance" class="text-2xl font-black text-slate-900">$0</span>
-        </div>
-        <div class="flex items-center gap-4 text-right">
-          <div>
-            <span class="text-[10px] text-slate-400 font-bold block">累積存入/撥入</span>
-            <span id="account-details-inflow" class="text-sm font-bold text-emerald-600">+$0</span>
-          </div>
-          <div>
-            <span class="text-[10px] text-slate-400 font-bold block">累積支出/轉出</span>
-            <span id="account-details-outflow" class="text-sm font-bold text-rose-600">-$0</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-5 overflow-y-auto space-y-3 flex-1">
-        <div class="flex items-center justify-between text-xs font-extrabold text-slate-700 mb-1">
-          <span>交易歷史紀錄 (<span id="account-details-count">0</span> 筆)</span>
-          <button id="btn-filter-main-table" class="text-amber-600 hover:underline flex items-center gap-1 font-bold">
-            <i class="fa-solid fa-filter"></i> 在主表格中查看與篩選
-          </button>
-        </div>
-        <div id="account-details-list" class="space-y-2.5">
-          <!-- Dynamic Items -->
-        </div>
-      </div>
-
-      <div class="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-2 overflow-x-auto">
-        <div class="flex items-center gap-2">
-          <button id="btn-add-account-tx" class="px-3.5 py-2 rounded-xl bg-amber-100 text-amber-900 font-extrabold hover:bg-amber-200 text-xs flex items-center gap-1.5 shadow-sm">
-            <i class="fa-solid fa-plus text-amber-700"></i> 記此帳戶支出
-          </button>
-          <button id="btn-transfer-account-tx" class="px-3.5 py-2 rounded-xl bg-teal-100 text-teal-900 font-extrabold hover:bg-teal-200 text-xs flex items-center gap-1.5 shadow-sm">
-            <i class="fa-solid fa-arrow-right-arrow-left text-teal-700"></i> 轉帳/劃撥至其他戶頭
-          </button>
-        </div>
-        <button onclick="app.closeModal(document.getElementById('modal-account-details'))" class="px-4 py-2 rounded-xl bg-slate-200 text-slate-700 font-extrabold hover:bg-slate-300 text-xs shrink-0">
-          關閉
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 7: Co-Mingled Bank Account Splitter & Parent Outlay Hub -->
-  <div id="modal-comingled" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl w-full max-w-xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
-      
-      <!-- Header -->
-      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-amber-500 to-orange-500 text-white">
-        <div>
-          <h3 class="text-base font-black flex items-center gap-2">
-            <i class="fa-solid fa-scale-balanced text-amber-200"></i> 共用帳戶對帳與代付智算神器
-          </h3>
-          <p class="text-xs text-amber-100 mt-0.5 font-medium">一眼分辨網銀裡「宣穆的錢」vs「爸媽自己的錢」，並一鍵清算代付款</p>
-        </div>
-        <button onclick="app.closeModal(document.getElementById('modal-comingled'))" class="w-8 h-8 rounded-full bg-white/20 text-white hover:bg-white/30 flex items-center justify-center transition-colors">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="p-5 overflow-y-auto space-y-6 text-xs flex-1">
-
-        <!-- Part A: Co-Mingled Bank Account Calculator (Multi-Account List) -->
-        <div class="p-4.5 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-4">
-          <div class="flex items-center justify-between">
-            <h4 class="font-extrabold text-amber-900 text-sm flex items-center gap-2">
-              <i class="fa-solid fa-calculator text-amber-600"></i> 🏦 跨帳戶網銀對帳與個人資產智算
-            </h4>
-            <span class="text-[10px] bg-amber-200 text-amber-900 px-2.5 py-0.5 rounded-full font-bold">全帳戶同時對帳</span>
-          </div>
-
-          <p class="text-slate-600 leading-relaxed">
-            請輸入您各個網銀 App 目前顯示的<b>【實際總金額】</b>，系統會同時記住所有帳戶輸入值，並自動扣除宣穆專用金，為您計算出各帳戶與全帳戶合計屬於<b>爸媽自己的個人資金</b>：
-          </p>
-
-          <!-- Dynamic Multi-Account List Container -->
-          <div id="cm-multi-accounts-container" class="space-y-3">
-            <!-- Rendered by JavaScript -->
-          </div>
-
-          <!-- Total Parent Assets Summary Card -->
-          <div class="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl shadow-md space-y-1 mt-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-indigo-100 font-extrabold">👨‍👩‍👧 爸媽個人跨帳戶資產總計 (GRAND TOTAL)</span>
-              <span id="cm-grand-parent-total" class="text-2xl font-black text-white">$0</span>
-            </div>
-            <div class="text-right text-[11px] text-indigo-200">
-              已獨立扣除李宣穆專屬育兒金總額 <b id="cm-grand-xuanmu-total" class="text-emerald-300">$0</b> 元
-            </div>
-          </div>
-        </div>
-
-        <!-- Part B: Parent Out-of-Pocket / Credit Card Settlement -->
-        <div class="p-4.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-3">
-          <div class="flex items-center justify-between">
-            <h4 class="font-extrabold text-purple-900 text-sm flex items-center gap-2">
-              <i class="fa-solid fa-credit-card text-purple-600"></i> 💳 爸媽個人信用卡 / 現金代付智算歸還
-            </h4>
-            <span class="text-[10px] bg-purple-200 text-purple-900 px-2 py-0.5 rounded-full font-bold">代付清算</span>
-          </div>
-
-          <p class="text-slate-600 leading-relaxed">
-            當您拿<b>自己的信用卡</b>或<b>個人錢包現金</b>先幫宣穆付費時，系統會自動累積宣穆欠您的款項。
-          </p>
-
-          <div class="p-4 bg-white border border-purple-200 rounded-2xl flex items-center justify-between">
-            <div>
-              <span class="text-[11px] text-slate-500 font-bold block">目前【阿彤待歸還墊付款項】總額</span>
-              <span id="cm-atong-due" class="text-2xl font-black text-purple-700">$0</span>
-            </div>
-            <button onclick="app.triggerQuickPreset('qp-reimburse'); app.closeModal(document.getElementById('modal-comingled'));" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition-all flex items-center gap-1.5">
-              <i class="fa-solid fa-hand-holding-dollar"></i> 💸 一鍵劃撥歸還
-            </button>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 8: Backend Cloud Data Manager (雲端資料庫總管與後台管理中心) -->
-  <div id="modal-backend-manager" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">
-      
-      <!-- Header -->
-      <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
-        <div>
-          <h3 class="text-base font-black flex items-center gap-2">
-            <i class="fa-solid fa-server text-purple-200"></i> ☁️ 雲端資料庫總管與後台管理中心
-          </h3>
-          <p class="text-xs text-purple-100 mt-0.5 font-medium">解決跨裝置資料不一致、直接檢視與管理最高權限雲端後端資料</p>
-        </div>
-        <button onclick="app.closeModal(document.getElementById('modal-backend-manager'))" class="w-8 h-8 rounded-full bg-white/20 text-white hover:bg-white/30 flex items-center justify-center transition-colors">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="p-5 overflow-y-auto space-y-5 text-xs flex-1">
-
-        <!-- 1-Click Sync Controls -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="p-4 bg-purple-50 border border-purple-200 rounded-2xl space-y-2">
-            <div class="font-extrabold text-purple-900 text-sm flex items-center gap-1.5">
-              <i class="fa-solid fa-download text-purple-600"></i> 📥 以【雲端後台】為準
-            </div>
-            <p class="text-slate-600 text-[11px] leading-relaxed">
-              如果手機或電腦資料不一致，點擊此按鈕會<b>強制清除本機快取</b>，並 100% 完全載入雲端後台最新數據：
-            </p>
-            <button onclick="app.forceResetLocalFromCloud()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-black rounded-xl text-xs shadow-md transition-colors">
-              🔥 強制以雲端資料覆蓋本機
-            </button>
-          </div>
-
-          <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
-            <div class="font-extrabold text-amber-900 text-sm flex items-center gap-1.5">
-              <i class="fa-solid fa-upload text-amber-600"></i> 📤 以【我畫面的資料】為準
-            </div>
-            <p class="text-slate-600 text-[11px] leading-relaxed">
-              如果您確定目前畫面的資料是最完整的，點擊此按鈕會<b>強制發布覆蓋雲端後台</b>：
-            </p>
-            <button onclick="app.forcePushCurrentToCloud()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl text-xs shadow-md transition-colors">
-              🚀 強制發布當前畫面至雲端
-            </button>
-          </div>
-        </div>
-
-        <!-- Raw JSON Data View/Editor -->
-        <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-          <div class="flex items-center justify-between">
-            <h4 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
-              <i class="fa-solid fa-code text-slate-600"></i> 📝 後端原生 JSON 數據檢視與編輯器
-            </h4>
-            <span id="backend-json-status" class="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-bold">載入中...</span>
-          </div>
-
-          <p class="text-slate-500 text-[11px]">
-            以下為雲端後台儲存的完全原生 JSON 資料結構，包含您所有帳戶、交易筆數與預算設定：
-          </p>
-
-          <textarea id="backend-json-textarea" rows="10" class="w-full font-mono text-[11px] bg-slate-900 text-emerald-400 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 leading-relaxed"></textarea>
-
-          <div class="flex items-center justify-between pt-1">
-            <button onclick="app.openBackendManagerModal()" class="px-3 py-1.5 bg-slate-200 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-300">
-              🔄 重新整理 JSON 數據
-            </button>
-            <button onclick="app.saveBackendJSONFromEditor()" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black rounded-xl text-xs shadow-md hover:from-purple-700 hover:to-indigo-700">
-              💾 儲存原生 JSON 並更新全球雲端
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
-        <button onclick="app.closeModal(document.getElementById('modal-backend-manager'))" class="px-4 py-2 rounded-xl bg-slate-200 text-slate-700 font-extrabold hover:bg-slate-300 text-xs">
-          關閉後台
-        </button>
-      </div>
-    </div>
-  </div>
-
+  </main>
+</div>
+<div id="sheetHost"></div>
+<div id="toastHost"></div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,doc as fsDoc,collection as fsCol,setDoc,deleteDoc,onSnapshot as fsSnap,query,limit as fsLimit} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {FIREBASE_CONFIG} from "./firebase-config.js";
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=n=>{n=Math.round(Number(n)||0);return (n<0?"-$":"$")+Math.abs(n).toLocaleString("zh-TW")};
+const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const roc=y=>Number(y)-1911;
+const rocMonth=ym=>`${roc(ym.slice(0,4))}/${Number(ym.slice(5,7))}`;
+const md=d=>`${Number(d.slice(5,7))}/${Number(d.slice(8,10))}`;
+const clone=o=>JSON.parse(JSON.stringify(o||{}));
+const docBody=o=>{const c=clone(o);delete c.id;return c};
+
+const S={db:null,cfgRef:null,cfg:null,tx:new Map(),loadedCfg:false,loadedTx:false,canWrite:true,
+  f:{acc:"",fund:"",month:"",q:""},confirmDel:null,st:null};
+
+/* ---------- model ---------- */
+const accounts=()=>(S.cfg&&S.cfg.accounts)||[];
+const funds=()=>(S.cfg&&S.cfg.funds)||[];
+const accById=id=>accounts().find(a=>a.id===id);
+const fundById=id=>funds().find(f=>f.id===id);
+const kind=id=>{const a=accById(id);return a?a.kind:null};
+const isBank=id=>{const k=kind(id);return k==="bank"||k==="loan"};
+const label=v=>{const a=accById(v);return a?a.name:(v||"外部")};
+const fundName=id=>{const f=fundById(id);return f?f.name:(id?id:"未指定")};
+const fundColor=id=>{const i=funds().findIndex(f=>f.id===id);return i<0?"var(--f0)":`var(--f${(i%3)+1})`};
+const liveTx=()=>[...S.tx.values()].filter(t=>!t.deleted);
+const sortKey=t=>(t.date||"")+"|"+String(t.createdAt||0).padStart(15,"0");
+const advanceAcc=()=>accounts().find(a=>a.kind==="advance");
+const settleWallet=()=>accById(S.cfg.settleWallet)||accounts().find(a=>a.kind==="wallet");
+
+// What a record is, in plain words
+function actionOf(t){
+  if(t.type==="收入")return "income";
+  if(t.type==="支出")return "spend";
+  if(t.type==="轉帳"){
+    if(kind(t.to)==="advance")return "settle";
+    if(kind(t.to)==="loan")return "lend";
+    if(kind(t.from)==="loan")return "repay";
+    if(isBank(t.from)&&kind(t.to)==="wallet")return "topup";
+    return "transfer";
+  }
+  return "spend";
+}
+const ACT={income:{l:"收到錢",c:"in"},topup:{l:"撥零用錢",c:"tr"},spend:{l:"花費",c:"out"},settle:{l:"月底結算",c:"st"},transfer:{l:"轉帳",c:"tr"},lend:{l:"借出",c:"tr"},repay:{l:"收回借款",c:"in"}};
+
+function budgetPeriod(fund){
+  const sm=Number(fund&&fund.startMonth)||1;const d=new Date();
+  let y=d.getFullYear();if(d.getMonth()+1<sm)y--;
+  const start=y+"-"+String(sm).padStart(2,"0")+"-01";
+  const ey=sm===1?y:y+1, em=sm===1?12:sm-1;
+  return {start,end:ey+"-"+String(em).padStart(2,"0")+"-31",label:`${roc(y)}/${sm} – ${roc(ey)}/${em}`};
+}
+
+function compute(){
+  const bal={};accounts().forEach(a=>bal[a.id]=0);
+  const F={};const ensure=id=>F[id]||(F[id]={in:0,out:0,loc:{},dest:{},yIn:0,yOut:0,mOut:0,moved:{}});
+  funds().forEach(f=>ensure(f.id));
+  const ym=todayStr().slice(0,7);
+  const walletMonth={};
+  for(const t of liveTx()){
+    const a=Number(t.amount)||0;
+    if(t.type==="收入"){if(accById(t.to))bal[t.to]+=a}
+    else if(t.type==="支出"){if(accById(t.from))bal[t.from]-=a}
+    else{if(accById(t.from))bal[t.from]-=a;if(accById(t.to))bal[t.to]+=a}
+    // wallet spending this month (spend + settle out of a wallet)
+    if(kind(t.from)==="wallet"&&(t.type==="支出"||kind(t.to)==="advance")&&(t.date||"").startsWith(ym))walletMonth[t.from]=(walletMonth[t.from]||0)+a;
+    // fund flows: count money when it enters or leaves the bank accounts
+    const fid=t.fund||"_none";const bFrom=isBank(t.from),bTo=isBank(t.to);
+    const into=(t.type==="收入"&&bTo)||(t.type==="轉帳"&&!bFrom&&bTo);
+    const outOf=(t.type==="支出"&&bFrom)||(t.type==="轉帳"&&bFrom&&!bTo);
+    const between=t.type==="轉帳"&&bFrom&&bTo;
+    if(!into&&!outOf&&!between)continue;
+    const f=ensure(fid);const P=budgetPeriod(fundById(fid));const inY=t.date>=P.start&&t.date<=P.end;
+    const loc=(id,v)=>f.loc[id]=(f.loc[id]||0)+v;
+    if(into){f.in+=a;loc(t.to,a);if(inY)f.yIn+=a}
+    if(outOf){f.out+=a;loc(t.from,-a);if(inY)f.yOut+=a;if((t.date||"").startsWith(ym))f.mOut+=a;
+      const k=t.type==="支出"?"直接付款・"+(t.category||"其他"):"撥到 "+label(t.to);f.dest[k]=(f.dest[k]||0)+a}
+    if(between){loc(t.from,-a);loc(t.to,a);const k=label(t.to);f.moved[k]=(f.moved[k]||0)+a}
+  }
+  return {bal,F,walletMonth};
+}
+
+/* ---------- render ---------- */
+function render(){
+  if(!S.loadedCfg||!S.loadedTx)return;
+  $("#status").hidden=true;$("#app").hidden=false;$("#toolbar").hidden=false;
+  const c=S.cfg;
+  $("#appTitle").textContent=c.title||"小萌馬金庫";
+  $("#appSub").textContent=(c.child?c.child+"的":"")+"育兒資金帳本・手機電腦同一份資料";
+  S.st=compute();
+  renderWarnings();renderHero();renderActions();renderAccounts();renderLedger();
+  const tc=[...S.tx.values()].filter(t=>t.deleted).length;
+  $("#trashCount").textContent=tc?tc:"";
+}
+
+function renderWarnings(){
+  const {bal}=S.st;let h="";
+  if(!S.canWrite)h+=`<div class="notice">你目前只能查看這本帳，無法新增或修改。</div>`;
+  if(!accounts().length)h+=`<div class="notice"><b>還沒有資料：</b>第一次使用請匯入備份檔，帳戶、基金和所有紀錄會一起搬進來。 <button class="btn small" data-open="backup">匯入備份檔</button></div>`;
+  const neg=accounts().filter(a=>a.kind!=="advance"&&!a.archived&&bal[a.id]<0);
+  if(neg.length)h+=`<div class="notice"><b>紀錄上的餘額變成負數：</b>${neg.map(a=>esc(a.name)+" "+money(bal[a.id])).join("、")}。代表有一筆紀錄的帳戶或金額填錯了，點帳戶名稱可以逐筆檢查。</div>`;
+  $("#warnings").innerHTML=h;
+}
+
+function renderHero(){
+  const {F}=S.st;const ids=funds().map(f=>f.id).concat(F._none&&(F._none.in||F._none.out)?["_none"]:[]);
+  const rem=id=>F[id]?F[id].in-F[id].out:0;
+  const total=ids.reduce((s,id)=>s+rem(id),0);
+  const pos=ids.filter(id=>rem(id)>0);const posSum=pos.reduce((s,id)=>s+rem(id),0)||1;
+  const cards=ids.map(id=>{
+    const f=F[id]||{in:0,out:0,yIn:0,yOut:0,mOut:0};const fd=fundById(id);const P=budgetPeriod(fd);
+    let sub;
+    if(fd&&fd.yearly){const pct=Math.min(100,Math.round(f.yOut/fd.yearly*100));
+      sub=`<div class="bar"><i style="width:${pct}%"></i></div><div class="fs">${P.label} 年度 ${money(fd.yearly)}<br>已用 <span class="num">${money(f.yOut)}</span>・本月 <span class="num">${money(f.mOut)}</span></div>`}
+    else sub=`<div class="fs">累計收到 <span class="num">${money(f.in)}</span>・已用 <span class="num">${money(f.out)}</span></div>`;
+    return `<button class="fund" style="--fc:${fundColor(id)}" data-fund="${id}"><span class="fn">${esc(fundName(id))}</span><span class="fb num ${rem(id)<0?"neg":""}">${money(rem(id))}</span>${sub}</button>`}).join("");
+  $("#hero").innerHTML=`<div class="total"><div class="lbl">屬於${esc(S.cfg.child||"孩子")}的錢（還在銀行帳戶裡）</div><div class="big num">${money(total)}</div>
+    <div class="split">${pos.map(id=>`<i style="width:${rem(id)/posSum*100}%;background:${fundColor(id)}"></i>`).join("")}</div>
+    <div class="foot">撥進零用錢包的錢算已用掉。點右邊的基金看錢花到哪裡、現在放在哪個帳戶。</div></div><div class="funds">${cards}</div>`;
+}
+
+function renderActions(){
+  const {bal}=S.st;const adv=advanceAcc();const owed=adv?Math.max(0,-bal[adv.id]):0;
+  const wl=accounts().filter(a=>a.kind==="wallet"&&!a.archived).map(a=>a.name).join("・");
+  $("#actSec").hidden=!S.canWrite||!accounts().length;
+  $("#actions").innerHTML=`
+    <button class="act" data-action="income"><span class="ic in">＋</span><span><b>收到錢</b><span>宣穆基金・政府津貼・紅包</span></span></button>
+    <button class="act" data-action="topup"><span class="ic tr">→</span><span><b>撥零用錢</b><span>${esc(wl||"零用錢包")}</span></span></button>
+    <button class="act" data-action="spend"><span class="ic out">－</span><span><b>記花費</b><span>錢包花的・我先刷卡的</span></span></button>
+    <button class="act" data-action="settle"><span class="ic st">✓</span><span><b>月底結算</b><span>${owed?`我先墊了 <span class="num">${money(owed)}</span>`:"從共同錢包扣回代墊"}</span></span></button>`;
+}
+
+function renderAccounts(){
+  const {bal,F,walletMonth}=S.st;
+  const byKind=k=>accounts().filter(a=>a.kind===k&&!a.archived);
+  const fundLines=id=>{const rows=Object.keys(F).map(fid=>[fid,Math.round(F[fid].loc[id]||0)]).filter(([,v])=>v!==0);
+    return rows.length?`<div class="fl">${rows.map(([fid,v])=>`<div><span><span class="dot" style="--fc:${fundColor(fid)}"></span>${esc(fundName(fid))}</span><span class="num ${v<0?"neg":""}">${money(v)}</span></div>`).join("")}</div>`:""};
+  const bank=byKind("bank").map(a=>{
+    const rec=bal[a.id];let recon="";
+    if(a.actual!==undefined&&a.actual!==null&&a.actual!==""){const own=Number(a.actual)-rec;
+      recon=`<div class="recon"><div><span>銀行實際餘額（${a.actualDate?md(a.actualDate):""}）</span><span class="num">${money(a.actual)}</span></div><div><span>其中你自己的錢</span><span class="num ${own<0?"neg":""}">${money(own)}</span></div></div>`}
+    return `<div class="acc ${S.f.acc===a.id?"on":""}"><div class="ah"><button class="an" data-acc="${a.id}">${esc(a.name)}</button>${S.canWrite?`<button class="btn small" data-recon="${a.id}">${recon?"更新":"對帳"}</button>`:""}</div>
+      <div><div class="al">屬於${esc(S.cfg.child||"孩子")}的</div><div class="ab num ${rec<0?"neg":""}">${money(rec)}</div></div>${fundLines(a.id)}${recon||(a.note?`<div class="al">${esc(a.note)}</div>`:"")}</div>`}).join("");
+  const wallets=byKind("wallet").map(a=>`<div class="acc ${S.f.acc===a.id?"on":""}"><div class="ah"><button class="an" data-acc="${a.id}">${esc(a.name)}</button></div>
+      <div><div class="al">錢包剩餘</div><div class="ab num ${bal[a.id]<0?"neg":""}">${money(bal[a.id])}</div></div><div class="al">本月已記花費 <span class="num">${money(walletMonth[a.id]||0)}</span>${a.note?"・"+esc(a.note):""}</div></div>`).join("");
+  const adv=byKind("advance").map(a=>{const owed=-bal[a.id];return `<div class="acc ${S.f.acc===a.id?"on":""}"><div class="ah"><button class="an" data-acc="${a.id}">${esc(a.name)}</button></div>
+      <div><div class="al">還沒結算的代墊</div><div class="ab num">${money(Math.max(0,owed))}</div></div><div class="al">${owed>0?"月底按「月底結算」從共同錢包扣回":owed<0?"結算金額比代墊多 "+money(-owed):"目前都結清了"}</div></div>`}).join("");
+  const loans=byKind("loan").map(a=>`<div class="acc ${S.f.acc===a.id?"on":""}"><div class="ah"><button class="an" data-acc="${a.id}">${esc(a.name)}</button></div>
+      <div><div class="al">還沒還的</div><div class="ab num">${money(bal[a.id])}</div></div>${fundLines(a.id)}${a.note?`<div class="al">${esc(a.note)}</div>`:""}</div>`).join("");
+  $("#accounts").innerHTML=
+    (bank?`<div class="accgroup"><p class="glbl">銀行帳戶・裡面也有你自己的錢，按「對帳」填銀行 App 上的餘額就能分開</p><div class="accs">${bank}</div></div>`:"")+
+    (wallets?`<div class="accgroup"><p class="glbl">零用錢包・撥進來就算用掉，這裡只看還剩多少</p><div class="accs">${wallets}</div></div>`:"")+
+    (loans?`<div class="accgroup"><p class="glbl">借出去的錢・還是屬於${esc(S.cfg.child||"孩子")}的，收回時用「帳戶之間轉帳」轉回銀行</p><div class="accs">${loans}</div></div>`:"")+
+    (adv?`<div class="accgroup"><p class="glbl">我先墊的錢・刷卡或用我自己的錢包買的</p><div class="accs">${adv}</div></div>`:"");
+}
+
+function renderLedger(){
+  const f=S.f;
+  const months=[...new Set(liveTx().map(t=>(t.date||"").slice(0,7)).filter(Boolean))].sort().reverse();
+  $("#fMonth").innerHTML=`<option value="">全部月份</option>`+months.map(m=>`<option value="${m}" ${m===f.month?"selected":""}>${roc(m.slice(0,4))}年${Number(m.slice(5))}月</option>`).join("");
+  $("#activeChips").innerHTML=(f.acc?`<span class="chipfilter">${esc(label(f.acc))}<button data-clr="acc" aria-label="取消帳戶篩選">×</button></span> `:"")+(f.fund?`<span class="chipfilter">${esc(fundName(f.fund))}<button data-clr="fund" aria-label="取消基金篩選">×</button></span>`:"");
+  $("#ledTitle").textContent=f.acc?label(f.acc)+" 存摺":"收支明細";
+  let list=liveTx().sort((a,b)=>sortKey(a)<sortKey(b)?-1:1);
+  const run=new Map();
+  const eff=(t,id)=>{const a=Number(t.amount)||0;let e=0;if(t.from===id&&t.type!=="收入")e-=a;if(t.to===id&&t.type!=="支出")e+=a;return e};
+  if(f.acc){let r=0;list=list.filter(t=>t.from===f.acc||t.to===f.acc);list.forEach(t=>{r+=eff(t,f.acc);run.set(t.id,r)})}
+  list.reverse();
+  if(f.fund)list=list.filter(t=>(t.fund||"_none")===f.fund);
+  if(f.month)list=list.filter(t=>(t.date||"").startsWith(f.month));
+  if(f.q){const q=f.q.toLowerCase();list=list.filter(t=>[t.note,t.category,fundName(t.fund),label(t.from),label(t.to)].join(" ").toLowerCase().includes(q))}
+  if(!list.length){$("#book").innerHTML=`<div class="empty">${S.tx.size?"沒有符合條件的紀錄":"還沒有任何紀錄"}</div>`;return}
+  let h="",lastM="";
+  for(const t of list){
+    const m=t.date.slice(0,7);
+    if(m!==lastM){lastM=m;h+=`<div class="month"><b>${roc(m.slice(0,4))}年${Number(m.slice(5))}月</b></div>`}
+    const act=actionOf(t),A=ACT[act];
+    let amt,ac=A.c==="st"?"tr":A.c;
+    if(f.acc){const e=eff(t,f.acc);amt=(e>=0?"+":"−")+money(Math.abs(e));ac=e>=0?"in":"out"}
+    else amt=(t.type==="收入"?"+":t.type==="支出"?"−":"")+money(t.amount);
+    const flow=t.type==="收入"?`${esc(label(t.from))} → ${esc(label(t.to))}`:t.type==="支出"?`${esc(label(t.from))} 付`:`${esc(label(t.from))} → ${esc(label(t.to))}`;
+    const fundTag=t.fund?`<span class="pill"><span class="dot" style="--fc:${fundColor(t.fund)}"></span>${esc(fundName(t.fund))}</span>`:"";
+    const confirming=S.confirmDel===t.id;
+    const acts=!S.canWrite?"":confirming?`<div class="acts"><button data-act="dodel" data-id="${t.id}" class="del">確定刪除</button><button data-act="nodel">取消</button></div>`
+      :`<div class="acts"><button data-act="edit" data-id="${t.id}">編輯</button><button data-act="del" data-id="${t.id}" class="del">刪除</button></div>`;
+    h+=`<div class="row ${confirming?"confirm":""}"><div class="d">${md(t.date)}</div>
+      <div class="main"><div class="note">${esc(t.note||t.category||A.l)}</div><div class="meta"><span class="tag ${A.c}">${A.l}</span><span>${flow}</span>${fundTag}${t.type==="支出"&&t.category?`<span class="pill">${esc(t.category)}</span>`:""}</div></div>
+      <div class="right"><span class="amt num ${ac}">${amt}</span>${run.has(t.id)?`<span class="run num">餘 ${money(run.get(t.id))}</span>`:""}${acts}</div></div>`;
+  }
+  $("#book").innerHTML=h;
+}
+
+/* ---------- sheet ---------- */
+function openSheet(title,body,foot,onMount){
+  $("#sheetHost").innerHTML=`<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sh"><h3>${esc(title)}</h3><button class="btn ghost" id="shClose" aria-label="關閉">✕</button></div><div class="sb">${body}</div>${foot?`<div class="sf">${foot}</div>`:""}</div></div>`;
+  $("#shClose").onclick=closeSheet;
+  $("#scrim").addEventListener("mousedown",e=>{if(e.target.id==="scrim")closeSheet()});
+  $$(".sheet .chips").forEach(g=>g.addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;$$(".chip",g).forEach(x=>x.setAttribute("aria-pressed",x===b));g.dispatchEvent(new CustomEvent("pick",{detail:b.dataset.v}))}));
+  onMount&&onMount();
+}
+function closeSheet(){$("#sheetHost").innerHTML=""}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#scrim"))closeSheet()});
+const chips=(id,opts,sel)=>`<div class="chips" id="${id}" role="group">${opts.map(o=>`<button type="button" class="chip" data-v="${esc(o.v)}" aria-pressed="${o.v===sel}">${esc(o.l)}${o.s?`<small>${o.s}</small>`:""}</button>`).join("")}</div>`;
+const pick=id=>{const b=$(`#${id} .chip[aria-pressed="true"]`);return b?b.dataset.v:""};
+const setPick=(id,v)=>$$(`#${id} .chip`).forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v));
+const accChips=(id,kinds,sel,showBal)=>chips(id,accounts().filter(a=>kinds.includes(a.kind)&&(!a.archived||a.id===sel)).map(a=>({v:a.id,l:a.name,s:showBal?money(S.st.bal[a.id]):""})),sel);
+const fundChips=(id,sel)=>chips(id,funds().map(f=>({v:f.id,l:f.name})),sel);
+
+const TITLES={income:"收到錢",topup:"撥零用錢",spend:"記花費",settle:"月底結算",transfer:"帳戶之間轉帳",lend:"借出",repay:"收回借款"};
+
+function openAction(action,tx){
+  if(action==="lend"||action==="repay")action="transfer";
+  const c=S.cfg;const edit=!!(tx&&tx.id);const t=Object.assign({date:todayStr(),amount:"",note:""},tx||{});
+  const banks=accounts().filter(a=>a.kind==="bank");
+  const defBank=c.defaultBank||(banks[0]&&banks[0].id);
+  const bal=S.st.bal;const adv=advanceAcc();const owed=adv?Math.max(0,-bal[adv.id]):0;
+  let body="",fields=[];
+  const amountDate=(hint)=>`<div class="two"><div class="f"><label for="aAmt">金額（元）</label><input id="aAmt" class="big" inputmode="numeric" value="${esc(t.amount)}" placeholder="0" autocomplete="off">${hint?`<p class="hint">${hint}</p>`:""}</div><div class="f"><label for="aDate">日期</label><input id="aDate" type="date" value="${esc(t.date)}"></div></div>`;
+  const note=(ph)=>`<div class="f"><label for="aNote">備註</label><input id="aNote" value="${esc(t.note)}" placeholder="${esc(ph)}"></div>`;
+  if(action==="income"){
+    const fund=t.fund||(funds()[0]&&funds()[0].id);const fd=fundById(fund);
+    body=`<div class="f"><span class="lb">哪一筆錢</span>${fundChips("aFund",fund)}</div>
+      <div class="f"><span class="lb">存進哪裡</span>${accChips("aTo",["bank","wallet"],t.to||(fd&&fd.defaultAcc)||defBank)}</div>
+      ${amountDate()}${note("例如：9月育兒津貼、115年度宣穆基金")}`;
+  }else if(action==="topup"){
+    const w=t.to||(accounts().find(a=>a.kind==="wallet")||{}).id;
+    if(!t.amount){const a=accById(w);if(a&&a.topup)t.amount=a.topup}
+    body=`<div class="f"><span class="lb">撥給誰</span>${accChips("aTo",["wallet"],w,true)}</div>
+      <div class="f"><span class="lb">從哪個帳戶撥</span>${accChips("aFrom",["bank"],t.from||defBank)}</div>
+      <div class="f"><span class="lb">用哪一筆錢</span>${fundChips("aFund",t.fund||c.defaultSpendFund)}</div>
+      ${amountDate()}${note("")}`;
+  }else if(action==="spend"){
+    const payer=t.from||(adv?adv.id:"");
+    body=`<div class="f"><span class="lb">誰付的</span>${chips("aFrom",accounts().filter(a=>(a.kind==="wallet"||a.kind==="advance")&&(!a.archived||a.id===payer)).map(a=>({v:a.id,l:a.kind==="advance"?"我先刷卡／我的錢包":a.name})).concat(banks.filter(a=>!a.archived||a.id===payer).map(a=>({v:a.id,l:a.name,s:"直接從銀行付"}))),payer)}</div>
+      <p class="hint" id="spHint"></p>
+      <div class="f" id="fundWrap"><span class="lb">用哪一筆錢</span>${fundChips("aFund",t.fund||c.defaultSpendFund)}</div>
+      ${amountDate()}
+      <div class="f"><span class="lb">分類</span>${chips("aCat",(c.categories||["其他"]).map(x=>({v:x,l:x})),t.category||(c.categories||["其他"])[0])}</div>
+      ${note("例如：尿布兩箱、腸病毒疫苗第二劑")}`;
+  }else if(action==="settle"){
+    const w=t.from||(settleWallet()||{}).id;
+    if(!edit&&!t.amount&&owed)t.amount=owed;
+    if(!edit&&!t.note)t.note=rocMonth(todayStr())+" 代墊結算";
+    body=`<div class="callout">${owed?`你先墊的錢目前還有 <b class="num">${money(owed)}</b> 沒結算。按下結算後，這筆錢會從錢包扣掉，代墊歸零。`:`目前沒有記到代墊。如果你這個月是自己算好總額，直接輸入金額就好，會從錢包扣掉。`}</div>
+      <div class="f"><span class="lb">從哪個錢包扣</span>${accChips("aFrom",["wallet"],w,true)}</div>
+      ${amountDate(owed?"預設是全部代墊金額":"")}${note("")}`;
+  }else{
+    body=`<div class="f"><span class="lb">從</span>${accChips("aFrom",["bank","loan"],t.from||defBank,true)}</div>
+      <div class="f"><span class="lb">轉到</span>${accChips("aTo",["bank","loan"],t.to||"")}</div>
+      <div class="f"><span class="lb">這是哪一筆錢</span>${fundChips("aFund",t.fund||"")}<p class="hint">例如政府津貼從郵局轉到宣穆的投資戶，就選「政府津貼」。</p></div>
+      ${amountDate()}${note("例如：津貼轉投資戶")}`;
+  }
+  body+=`<div class="err" id="aErr" role="alert"></div>`;
+  openSheet((edit?"編輯・":"")+TITLES[action],body,`<button class="btn" id="aCancel">取消</button><button class="btn primary" id="aSave">${edit?"儲存修改":"記下來"}</button>`,()=>{
+    $("#aCancel").onclick=closeSheet;
+    if(action==="topup")$("#aTo").addEventListener("pick",e=>{const a=accById(e.detail);if(a&&a.topup)$("#aAmt").value=a.topup});
+    if(action==="spend"){const upd=()=>{const p=pick("aFrom");$("#fundWrap").hidden=!isBank(p);
+      $("#spHint").textContent=kind(p)==="advance"?"先記下來，月底按「月底結算」一次從共同錢包扣回。":kind(p)==="wallet"?"錢包的錢撥進去時已經算用掉，這裡只會減少錢包剩餘。也可以月底記一筆總額。":"直接從銀行帳戶付，會算進所選基金的支出。"};
+      upd();$("#aFrom").addEventListener("pick",upd)}
+    if(action==="income")$("#aFund").addEventListener("pick",e=>{const fd=fundById(e.detail);if(fd&&fd.defaultAcc)setPick("aTo",fd.defaultAcc)});
+    $("#aSave").onclick=async()=>{
+      const err=$("#aErr");const amount=Math.round(Number(String($("#aAmt").value).replace(/[,$\s]/g,"")));
+      if(!(amount>0))return err.textContent="請輸入大於 0 的金額。";
+      const date=$("#aDate").value;if(!date)return err.textContent="請選擇日期。";
+      let r={amount,date,note:$("#aNote").value.trim()};
+      if(action==="income"){r.type="收入";r.fund=pick("aFund");r.to=pick("aTo");r.from=fundName(r.fund);r.category="";if(!r.to)return err.textContent="請選擇存進哪裡。"}
+      else if(action==="topup"){r.type="轉帳";r.to=pick("aTo");r.from=pick("aFrom");r.fund=pick("aFund");r.category="";if(!r.to||!r.from)return err.textContent="請選擇錢包和帳戶。";if(!r.note)r.note=rocMonth(date)+" "+label(r.to)}
+      else if(action==="spend"){r.type="支出";r.from=pick("aFrom");r.to=t.to&&!accById(t.to)?t.to:"商家";r.category=pick("aCat");r.fund=isBank(r.from)?pick("aFund"):"";if(!r.from)return err.textContent="請選擇誰付的。";if(isBank(r.from)&&!r.fund)return err.textContent="請選擇用哪一筆錢。"}
+      else if(action==="settle"){r.type="轉帳";r.from=pick("aFrom");r.to=adv?adv.id:"";r.fund="";r.category="";if(!r.from)return err.textContent="請選擇錢包。";if(!adv)return err.textContent="請先在設定裡加一個「我先墊」帳戶。"}
+      else{r.type="轉帳";r.from=pick("aFrom");r.to=pick("aTo");r.fund=pick("aFund");r.category="";if(!r.from||!r.to)return err.textContent="請選擇兩個帳戶。";if(r.from===r.to)return err.textContent="轉出和轉入不能是同一個帳戶。"}
+      $("#aSave").disabled=true;
+      try{const now=Date.now();
+        if(edit)await S.db.doc("tx/"+t.id).set(Object.assign(docBody(S.tx.get(t.id)),r,{updatedAt:now}));
+        else await S.db.collection("tx").doc().set(Object.assign(r,{createdAt:now,updatedAt:now}));
+        closeSheet();toast(edit?"已儲存修改":`已記下${TITLES[action]} ${money(amount)}`);
+      }catch(e){$("#aSave").disabled=false;writeError(e,err)}
+    };
+    if(!edit)setTimeout(()=>{const a=$("#aAmt");if(a&&!a.value)a.focus()},60);
+  });
+}
+
+function writeError(e,el){
+  const code=e&&e.code;
+  const m=(code==="invalid_argument"||code==="permission-denied")?"你沒有修改這本帳的權限。":code==="quota_exceeded"?"資料已達上限，請先清空垃圾桶。":code==="revoked"?"連線權限已失效，請重新整理頁面。":"存檔失敗，請檢查網路後再試一次。";
+  if(el)el.textContent=m;else toast(m);
+  if(code==="invalid_argument"||code==="permission-denied"){S.canWrite=false;render()}
+}
+let toastT;function toast(m){$("#toastHost").innerHTML=`<div class="toast" role="status">${esc(m)}</div>`;clearTimeout(toastT);toastT=setTimeout(()=>$("#toastHost").innerHTML="",2600)}
+async function saveCfg(patch){await S.cfgRef.set(Object.assign(clone(S.cfg),patch))}
+
+/* ---------- fund detail ---------- */
+function openFund(id){
+  const f=S.st.F[id]||{in:0,out:0,loc:{},dest:{},moved:{},yIn:0,yOut:0};const fd=fundById(id);const P=budgetPeriod(fd);
+  const rows=o=>Object.entries(o).filter(([,v])=>Math.round(v)!==0).sort((a,b)=>b[1]-a[1]);
+  const dest=rows(f.dest),loc=rows(f.loc).map(([k,v])=>[label(k),v]),moved=rows(f.moved);
+  const kv=l=>l.length?`<div class="kv">${l.map(([k,v])=>`<div><span>${esc(k)}</span><span class="num ${v<0?"neg":""}">${money(v)}</span></div>`).join("")}</div>`:`<p class="hint">還沒有紀錄</p>`;
+  const body=`
+    <div class="kv"><div><span>累計收到</span><span class="num">${money(f.in)}</span></div><div><span>累計用掉</span><span class="num">${money(f.out)}</span></div><div><b>剩餘</b><b class="num ${f.in-f.out<0?"neg":""}">${money(f.in-f.out)}</b></div>
+    ${fd&&fd.yearly?`<div><span>${P.label} 年度：收到 / 用掉</span><span class="num">${money(f.yIn)} / ${money(f.yOut)}</span></div>`:""}</div>
+    <p class="subh">錢去哪裡了</p>${kv(dest)}
+    <p class="subh">剩下的錢現在放在</p>${kv(loc)}
+    ${moved.length?`<p class="subh">帳戶之間移動過</p>${kv(moved)}`:""}`;
+  openSheet(fundName(id),body,`<button class="btn" id="fdLed">看這筆錢的所有紀錄</button>`,()=>{$("#fdLed").onclick=()=>{S.f.fund=id;S.f.acc="";closeSheet();render();$("#ledger").scrollIntoView({behavior:"smooth"})}});
+}
+
+/* ---------- reconcile ---------- */
+function openRecon(id){
+  const a=accById(id);const rec=S.st.bal[id];
+  const body=`<div class="callout">打開銀行 App，把「${esc(a.name)}」現在的餘額填進來。帳本會自動算出：銀行裡的錢 − 屬於${esc(S.cfg.child||"孩子")}的錢 = 你自己的錢。</div>
+    <div class="kv"><div><span>帳本紀錄中屬於${esc(S.cfg.child||"孩子")}的</span><span class="num">${money(rec)}</span></div></div>
+    <div class="two"><div class="f"><label for="rAmt">銀行實際餘額</label><input id="rAmt" class="big" inputmode="numeric" value="${esc(a.actual??"")}" placeholder="0"></div><div class="f"><label for="rDate">查詢日期</label><input id="rDate" type="date" value="${todayStr()}"></div></div>
+    <p class="hint" id="rOwn"></p><div class="err" id="rErr" role="alert"></div>`;
+  openSheet("對帳・"+a.name,body,`<button class="btn" id="rCancel">取消</button><button class="btn primary" id="rSave">儲存</button>`,()=>{
+    const upd=()=>{const v=Number($("#rAmt").value.replace(/[,$\s]/g,""));$("#rOwn").textContent=$("#rAmt").value?`你自己的錢：${money(v-rec)}${v-rec<0?"（比帳本少，可能有紀錄漏記或記錯）":""}`:""};
+    upd();$("#rAmt").oninput=upd;$("#rCancel").onclick=closeSheet;
+    $("#rSave").onclick=async()=>{const raw=$("#rAmt").value.replace(/[,$\s]/g,"");const accs=clone(accounts());const x=accs.find(y=>y.id===id);
+      if(raw===""){delete x.actual;delete x.actualDate}else{if(isNaN(Number(raw)))return $("#rErr").textContent="請輸入數字。";x.actual=Math.round(Number(raw));x.actualDate=$("#rDate").value}
+      try{await saveCfg({accounts:accs});closeSheet();toast("已更新對帳")}catch(e){writeError(e,$("#rErr"))}};
+  });
+}
+
+/* ---------- settings ---------- */
+function openSettings(){
+  const c=S.cfg;const KINDS=[["bank","銀行帳戶"],["wallet","零用錢包"],["advance","我先墊"],["loan","借出待還"]];
+  let accs=clone(accounts()),fds=clone(funds());
+  const accRows=()=>accs.map((a,i)=>`<div class="setrow"><input data-ai="${i}" data-k="name" value="${esc(a.name)}" aria-label="帳戶名稱"><select data-ai="${i}" data-k="kind" aria-label="種類">${KINDS.map(([v,l])=>`<option value="${v}" ${v===a.kind?"selected":""}>${l}</option>`).join("")}</select><button class="btn ghost" data-arch="${i}">${a.archived?"恢復":"隱藏"}</button>
+    <input data-ai="${i}" data-k="note" value="${esc(a.note||"")}" placeholder="說明（選填）" aria-label="說明" style="grid-column:1/3">${a.kind==="wallet"?`<input data-ai="${i}" data-k="topup" inputmode="numeric" value="${esc(a.topup||"")}" placeholder="每次撥款" aria-label="每次撥款金額">`:"<span></span>"}</div>`).join("");
+  const fundRows=()=>fds.map((f,i)=>`<div class="setrow"><input data-fi="${i}" data-k="name" value="${esc(f.name)}" aria-label="基金名稱"><input data-fi="${i}" data-k="yearly" inputmode="numeric" value="${esc(f.yearly||"")}" placeholder="每年金額（選填）" aria-label="每年金額"><select data-fi="${i}" data-k="defaultAcc" aria-label="通常存進">${accs.filter(a=>a.kind==="bank").map(a=>`<option value="${a.id}" ${a.id===f.defaultAcc?"selected":""}>${esc(a.name)}</option>`).join("")}</select></div>`).join("");
+  const body=`
+    <div class="two"><div class="f"><label for="sTitle">帳本名稱</label><input id="sTitle" value="${esc(c.title||"")}"></div><div class="f"><label for="sChild">孩子名字</label><input id="sChild" value="${esc(c.child||"")}"></div></div>
+    <div class="setsec"><p class="subh">錢的來源（基金）</p><p class="hint">填了每年金額，首頁會顯示年度用量。年度從幾月開始：<select id="sStart">${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===Number((fds[0]||{}).startMonth||1)?"selected":""}>${i+1} 月</option>`).join("")}</select></p>
+      <div class="setlist" id="fundList">${fundRows()}</div><button class="btn" id="addFund" type="button">＋ 新增來源</button></div>
+    <div class="setsec"><p class="subh">帳戶</p><p class="hint">隱藏的帳戶不會出現在選單裡，舊紀錄和餘額會保留。</p><div class="setlist" id="accList">${accRows()}</div><button class="btn" id="addAcc" type="button">＋ 新增帳戶</button></div>
+    <div class="setsec"><div class="f"><label for="sCats">花費分類（用逗號分開）</label><input id="sCats" value="${esc((c.categories||[]).join("，"))}"></div></div>
+    <div class="err" id="sErr" role="alert"></div>`;
+  openSheet("設定",body,`<button class="btn" id="sCancel">取消</button><button class="btn primary" id="sSave">儲存設定</button>`,()=>{
+    const sync=()=>{$$("[data-ai]").forEach(el=>accs[el.dataset.ai][el.dataset.k]=el.value);$$("[data-fi]").forEach(el=>fds[el.dataset.fi][el.dataset.k]=el.value)};
+    const bind=()=>{$$("[data-arch]").forEach(b=>b.onclick=()=>{sync();accs[b.dataset.arch].archived=!accs[b.dataset.arch].archived;$("#accList").innerHTML=accRows();bind()});
+      $$('[data-k="kind"]').forEach(s=>s.onchange=()=>{sync();$("#accList").innerHTML=accRows();bind()})};bind();
+    $("#addAcc").onclick=()=>{sync();accs.push({id:"acc-"+Date.now().toString(36),name:"新帳戶",kind:"bank",note:""});$("#accList").innerHTML=accRows();bind()};
+    $("#addFund").onclick=()=>{sync();fds.push({id:"f-"+Date.now().toString(36),name:"新來源"});$("#fundList").innerHTML=fundRows()};
+    $("#sCancel").onclick=closeSheet;
+    $("#sSave").onclick=async()=>{sync();
+      if(accs.some(a=>!String(a.name).trim())||fds.some(f=>!String(f.name).trim()))return $("#sErr").textContent="名稱不能空白。";
+      const sm=Number($("#sStart").value);
+      accs.forEach(a=>{a.name=a.name.trim();if(a.topup!==undefined)a.topup=Number(a.topup)||0});
+      fds.forEach(f=>{f.name=f.name.trim();f.yearly=Number(f.yearly)||0;f.startMonth=sm});
+      $("#sSave").disabled=true;
+      try{await saveCfg({title:$("#sTitle").value.trim(),child:$("#sChild").value.trim(),accounts:accs,funds:fds,categories:$("#sCats").value.split(/[,，、]/).map(s=>s.trim()).filter(Boolean)});closeSheet();toast("設定已儲存")}
+      catch(e){$("#sSave").disabled=false;writeError(e,$("#sErr"))}};
+  });
+}
+
+/* ---------- trash ---------- */
+function openTrash(){
+  const draw=()=>{const del=[...S.tx.values()].filter(t=>t.deleted).sort((a,b)=>(b.deletedAt||0)-(a.deletedAt||0));
+    return del.length?del.map(t=>`<div class="row" style="padding-inline:0"><div class="d">${md(t.date)}</div><div class="main"><div class="note">${esc(t.note||t.category||ACT[actionOf(t)].l)}</div><div class="meta"><span class="tag ${ACT[actionOf(t)].c}">${ACT[actionOf(t)].l}</span><span class="num">${money(t.amount)}</span></div></div><div class="right">${S.canWrite?`<div class="acts"><button data-restore="${t.id}">復原</button><button class="del" data-purge="${t.id}">永久刪除</button></div>`:""}</div></div>`).join(""):`<div class="empty">垃圾桶是空的</div>`};
+  openSheet("垃圾桶",`<p class="hint">刪掉的紀錄會先放在這裡，不算進任何餘額，隨時可以復原。</p><div id="trList">${draw()}</div>`,"",()=>{
+    $("#trList").onclick=async e=>{const r=e.target.dataset.restore,p=e.target.dataset.purge;
+      try{if(r){const t=docBody(S.tx.get(r));delete t.deleted;delete t.deletedAt;await S.db.doc("tx/"+r).set(t);toast("已復原")}
+        if(p){if(!e.target.dataset.sure){e.target.dataset.sure="1";e.target.textContent="再按一次確定";return}await S.db.doc("tx/"+p).delete();toast("已永久刪除")}
+        if(r||p)$("#trList").innerHTML=draw()}catch(err){writeError(err)}};
+  });
+}
+
+/* ---------- backup / import ---------- */
+function save(filename,data){try{const type=filename.endsWith(".csv")?"text/csv;charset=utf-8":"application/json";const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}catch(e){toast("下載失敗，請再試一次")}}
+function openBackup(){
+  const body=`<p class="hint">資料存在你自己的 Firebase，手機和電腦看到的是同一份。建議每個月下載一次完整備份，多留一份在自己電腦或雲端硬碟。</p>
+    <div class="two"><button class="btn" id="bCsv">下載 Excel 表格 (CSV)</button><button class="btn" id="bJson">下載完整備份 (JSON)</button></div>
+    ${S.canWrite?`<div class="setsec"><p class="subh">匯入備份檔</p><div class="importbox"><p class="hint">選擇「完整備份 (JSON)」檔案。第一次使用時，帳戶和基金設定也會一起匯入；已經存在的紀錄不會重複匯入。</p><input type="file" id="bFile" accept=".json,application/json"><div id="bPrev"></div></div></div>`:""}`;
+  openSheet("備份與匯入",body,"",()=>{
+    $("#bCsv").onclick=()=>{const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+      const rows=liveTx().sort((a,b)=>sortKey(a)<sortKey(b)?-1:1).map(t=>[t.date,ACT[actionOf(t)].l,t.amount,label(t.from),t.type==="支出"?"":label(t.to),t.fund?fundName(t.fund):"",t.category,t.note].map(q).join(","));
+      save(`${S.cfg.title||"金庫"}_${todayStr()}.csv`,"﻿"+[["日期","類型","金額","從","到","哪一筆錢","分類","備註"].map(q).join(",")].concat(rows).join("\r\n"))};
+    $("#bJson").onclick=()=>save(`${S.cfg.title||"金庫"}_備份_${todayStr()}.json`,JSON.stringify({format:"xiaomeng-v2",exportedAt:new Date().toISOString(),config:S.cfg,transactions:[...S.tx.entries()].map(([id,t])=>Object.assign({id},t))},null,2));
+    const fi=$("#bFile");if(fi)fi.onchange=()=>{const file=fi.files[0];if(!file)return;const rd=new FileReader();
+      rd.onload=()=>{let j;try{j=JSON.parse(rd.result)}catch(e){$("#bPrev").innerHTML=`<p class="err">這個檔案不是正確的 JSON 備份檔。</p>`;return}
+        const src=Array.isArray(j)?j:j.transactions;if(!Array.isArray(src)){$("#bPrev").innerHTML=`<p class="err">檔案裡找不到收支紀錄。</p>`;return}
+        const needCfg=!!(j.config&&!(S.cfg.accounts||[]).length);if(needCfg)S.cfg=j.config;
+        const conv=src.map(convertOld).filter(Boolean);const fresh=conv.filter(t=>!S.tx.has(t.id));
+        $("#bPrev").innerHTML=`<p style="margin:0">檔案裡有 <b class="num">${conv.length}</b> 筆，其中 <b class="num">${fresh.length}</b> 筆是新的。</p>${needCfg?`<p class="hint" style="margin:0">也會匯入帳戶、基金和分類設定。</p>`:""}${fresh.length||needCfg?`<button class="btn primary" id="bDo">匯入 ${fresh.length} 筆</button>`:""}`;
+        const b=$("#bDo");if(b)b.onclick=async()=>{b.disabled=true;let n=0;try{if(needCfg)await S.cfgRef.set(clone(j.config));for(const t of fresh){const id=t.id,d=Object.assign({},t);delete d.id;await S.db.doc("tx/"+id).set(d);n++;b.textContent=`匯入中 ${n}/${fresh.length}`}closeSheet();toast(`已匯入 ${n} 筆`)}catch(e){writeError(e,null);b.textContent=`已匯入 ${n} 筆，其餘失敗`}}};
+      rd.readAsText(file)};
+  });
+}
+const safeId=s=>String(s).replace(/[^A-Za-z0-9_\-.~:@+]/g,"_").slice(0,120);
+function nameToId(n){if(!n)return null;const cl=s=>String(s).replace(/[\s💳]/g,"").toLowerCase();const al=(S.cfg.accountAlias||{})[n];if(al&&accById(al))return al;const a=accounts().find(a=>cl(a.name)===cl(n));return a?a.id:null}
+function convertOld(o,i){
+  if(!o||!o.date||!o.amount)return null;
+  if(o.from!==undefined&&!o.sourceAccount)return Object.assign({},o,{id:safeId(o.id||("imp-"+i))});
+  const fi=nameToId(o.sourceAccount),ti=nameToId(o.targetAccount);let type=o.type||"支出";
+  if(type==="支出"&&fi&&ti&&fi!==ti)type="轉帳";
+  const fund=(S.cfg.fundAlias||{})[o.fund]||"";
+  const t={id:safeId(o.id||("imp-"+i)),type,amount:Math.round(Number(o.amount)),date:o.date,from:fi||o.sourceAccount||"",to:ti||o.targetAccount||"",category:o.category||"其他",fund,note:o.note||"",createdAt:Date.parse(o.date)||0,updatedAt:Date.now()};
+  if(type==="收入"&&(fi===ti||!fi))t.from=fundName(fund);
+  if(type!=="收入"&&!isBank(t.from)&&type!=="轉帳")t.fund="";
+  return t;
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{
+  if(e.target.closest('[data-open="backup"]')){openBackup();return}
+  const el=e.target.closest("[data-acc],[data-fund],[data-action],[data-act],[data-clr],[data-recon]");if(!el||el.closest(".sheet"))return;
+  if(el.dataset.clr){S.f[el.dataset.clr]="";render();return}
+  if(el.dataset.recon){openRecon(el.dataset.recon);return}
+  if(el.dataset.acc){S.f.acc=S.f.acc===el.dataset.acc?"":el.dataset.acc;S.f.fund="";S.confirmDel=null;render();if(S.f.acc)$("#ledger").scrollIntoView({behavior:"smooth",block:"start"});return}
+  if(el.dataset.fund){openFund(el.dataset.fund);return}
+  if(el.dataset.action){openAction(el.dataset.action);return}
+  const a=el.dataset.act,id=el.dataset.id;
+  if(a==="edit"){const t=S.tx.get(id);if(t)openAction(actionOf(t),clone(t))}
+  if(a==="del"){S.confirmDel=id;renderLedger()}
+  if(a==="nodel"){S.confirmDel=null;renderLedger()}
+  if(a==="dodel"){if(!S.tx.has(id))return;const t=docBody(S.tx.get(id));S.confirmDel=null;t.deleted=true;t.deletedAt=Date.now();S.db.doc("tx/"+id).set(t).then(()=>toast("已移到垃圾桶")).catch(err=>writeError(err))}
+});
+$("#fMonth").onchange=e=>{S.f.month=e.target.value;renderLedger()};
+let qT;$("#fQ").oninput=e=>{clearTimeout(qT);qT=setTimeout(()=>{S.f.q=e.target.value.trim();renderLedger()},150)};
+$("#btnTransfer").onclick=()=>openAction("transfer");
+$("#btnSettings").onclick=openSettings;
+$("#btnTrash").onclick=openTrash;
+$("#btnBackup").onclick=openBackup;
+
+/* ---------- boot ---------- */
+function makeDb(fs){
+  const WAIT=1500; // offline: the write is queued locally and uploads later
+  const w=p=>{p.catch(e=>writeError({code:e&&e.code}));return Promise.race([p,new Promise(r=>setTimeout(r,WAIT))])};
+  const wrapDoc=ref=>({id:ref.id,set:d=>w(setDoc(ref,d)),delete:()=>w(deleteDoc(ref)),
+    onSnapshot:(n,e)=>fsSnap(ref,s=>n({exists:s.exists(),data:()=>s.data()}),e)});
+  return {doc:p=>wrapDoc(fsDoc(fs,p)),collection:p=>{const c=fsCol(fs,p);return{
+    doc:id=>wrapDoc(id?fsDoc(c,id):fsDoc(c)),
+    limit:n=>({onSnapshot:(nx,e)=>fsSnap(query(c,fsLimit(n)),s=>nx({docs:s.docs.map(d=>({id:d.id,data:()=>d.data()}))}),e)})}}};
+}
+const app=initializeApp(FIREBASE_CONFIG);
+const auth=getAuth(app);
+const fs=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
+let unsubs=[];
+$("#login").addEventListener("submit",async e=>{e.preventDefault();$("#lErr").textContent="";$("#lGo").disabled=true;
+  try{await setPersistence(auth,browserLocalPersistence);await signInWithEmailAndPassword(auth,$("#lEmail").value.trim(),$("#lPw").value)}
+  catch(err){$("#lErr").textContent=/network/.test(err.code||"")?"連不上網路，請稍後再試。":"Email 或密碼不正確。"}finally{$("#lGo").disabled=false}});
+$("#btnOut").onclick=()=>signOut(auth);
+onAuthStateChanged(auth,user=>{
+  unsubs.forEach(u=>u());unsubs=[];S.loadedCfg=S.loadedTx=false;
+  if(!user){$("#login").hidden=false;$("#status").hidden=true;$("#app").hidden=true;$("#toolbar").hidden=true;return}
+  $("#login").hidden=true;$("#status").hidden=false;$("#status").textContent="正在讀取帳本…";
+  const db=makeDb(fs);S.db=db;S.cfgRef=db.doc("config/main");S.canWrite=true;
+  const fail=e=>{$("#status").hidden=false;$("#app").hidden=true;$("#status").textContent=e&&e.code==="permission-denied"?"這個帳號沒有權限打開帳本。請確認 Firestore 的安全規則裡有你的 Email。":"讀取資料失敗，請重新整理頁面。"};
+  unsubs.push(S.cfgRef.onSnapshot(snap=>{
+    S.cfg=snap.exists?snap.data():{title:"小萌馬金庫",child:"",accounts:[],funds:[],categories:["其他"]};
+    S.loadedCfg=true;render();
+  },fail));
+  unsubs.push(db.collection("tx").limit(1000).onSnapshot(snap=>{S.tx=new Map(snap.docs.map(d=>[d.id,Object.assign({},d.data(),{id:d.id})]));S.loadedTx=true;render()},fail));
+});
+})();
+</script>
 </body>
 </html>
