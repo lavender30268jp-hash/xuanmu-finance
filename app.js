@@ -65,11 +65,11 @@ const DEFAULT_QUICK_PRESETS = [
   { id: 'qp-reimburse', name: '💸 還錢給阿彤 (代付歸還)', mode: 'prompt-reimburse', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '💳 阿彤代付', category: '其他', fund: '宣穆基金', note: '歸還阿彤代付款', icon: 'fa-hand-holding-hand text-indigo-500', border: 'border-indigo-200 hover:border-indigo-400 bg-indigo-50/40', desc: '從宣穆基金/銀行歸還墊款給阿彤' }
 ];
 
-// Firebase Realtime Database URL - set via the sync settings modal
-// Format: https://<project-id>-default-rtdb.<region>.firebasedatabase.app
+// Firebase Realtime Database - 小萌馬金庫專屬實時同步資料庫
 const FIREBASE_URL_KEY = 'xm_firebase_url';
+const FIREBASE_DEFAULT_URL = 'https://xuanmu-finance-default-rtdb.asia-southeast1.firebasedatabase.app';
 
-const APP_BUILD_VER = '20260928_v44';
+const APP_BUILD_VER = '20260928_v45';
 
 class XuanMuFinanceApp {
   constructor() {
@@ -332,7 +332,8 @@ class XuanMuFinanceApp {
   }
 
   getFirebaseUrl() {
-    return localStorage.getItem(FIREBASE_URL_KEY) || '';
+    // Use localStorage override if set, otherwise use default hardcoded URL
+    return localStorage.getItem(FIREBASE_URL_KEY) || FIREBASE_DEFAULT_URL;
   }
 
   getFirebasePath() {
@@ -399,15 +400,15 @@ class XuanMuFinanceApp {
     const modal = document.getElementById('modal-cloud-sync');
     if (!modal) return;
 
-    // Pre-populate Firebase URL input
+    // Pre-populate Firebase URL input (shows default URL if no custom URL set)
     const urlInput = document.getElementById('firebase-url-input');
     const badge = document.getElementById('firebase-status-badge');
-    const savedUrl = this.getFirebaseUrl();
+    const savedUrl = this.getFirebaseUrl(); // Now returns default URL if not set
 
     if (urlInput) urlInput.value = savedUrl;
     if (badge) {
       if (savedUrl) {
-        badge.textContent = '✅ 已設定 Firebase URL';
+        badge.textContent = '✅ 已連線 - xuanmu-finance Firebase';
         badge.className = 'text-[11px] font-bold px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 inline-block';
       } else {
         badge.textContent = '⏳ 未設定';
