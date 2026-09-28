@@ -58,9 +58,9 @@
           <span>⚖️ 帳戶對帳與代付智算</span>
         </button>
 
-        <button onclick="app.openBackendManagerModal()" class="px-3.5 py-2.5 rounded-2xl bg-purple-50 hover:bg-purple-100 text-purple-900 text-xs font-extrabold flex items-center gap-1.5 border border-purple-200 transition-all shadow-sm">
-          <i class="fa-solid fa-server text-purple-600"></i>
-          <span>☁️ 雲端後台數據總管</span>
+        <button onclick="app.openCloudSyncModal()" class="px-3.5 py-2.5 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-extrabold flex items-center gap-1.5 border border-blue-200 transition-all shadow-sm">
+          <i class="fa-solid fa-fire text-orange-500"></i>
+          <span>☁️ 雲端同步設定</span>
         </button>
 
         <button id="btn-cloud-status" onclick="app.pullFromCloud(); alert('已完成雲端即時強制作業同步！手機與電腦資料庫已 100% 保持一致。');" class="px-3.5 py-2.5 rounded-2xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold flex items-center gap-1.5 border border-emerald-200 transition-all" title="點擊強制作業同步">
@@ -647,7 +647,7 @@
 
   <!-- Modal 5: Real-time Cloud Sync Room & Phone Connection Modal -->
   <div id="modal-cloud-sync" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl w-full max-w-md shadow-xl overflow-hidden modal-pop-animation">
+    <div class="bg-white rounded-3xl w-full max-w-md shadow-xl overflow-hidden modal-pop-animation max-h-[90vh] overflow-y-auto">
       <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
         <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
           <i class="fa-solid fa-mobile-screen-button text-emerald-600"></i> 手機與電腦實時連線方式
@@ -658,42 +658,75 @@
       </div>
 
       <div class="p-5 space-y-4 text-xs font-medium">
-        
-        <!-- Global Outdoor Tunnel Link (4G/5G/Outdoor) -->
-        <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
-          <div class="font-extrabold text-amber-900 text-sm flex items-center gap-1.5">
-            <i class="fa-solid fa-globe text-amber-600"></i> 🌐 戶外 / 4G / 5G 隨時連線網址 (全球通用)
+
+        <!-- Firebase Section (PRIMARY) -->
+        <div class="p-4 bg-blue-50 border border-blue-200 rounded-2xl space-y-3">
+          <div class="font-extrabold text-blue-900 text-sm flex items-center gap-1.5">
+            <i class="fa-solid fa-fire text-orange-500"></i> ☁️ Firebase 即時同步設定 (推薦)
           </div>
           <p class="text-slate-600 leading-relaxed">
-            即使不在家、沒有連 Wi-Fi，在外面用手機 4G/5G 點開下方網址即可隨時連線記帳：
+            設定後手機與電腦資料自動即時雙向同步，完全免費且無請求次數限制。
+          </p>
+          <div id="firebase-status-badge" class="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 inline-block">
+            ⏳ 未設定
+          </div>
+          <div class="space-y-2">
+            <label class="block text-slate-700 font-bold text-xs">Firebase Realtime Database URL：</label>
+            <input id="firebase-url-input" type="url"
+              placeholder="https://你的專案-default-rtdb.asia-southeast1.firebasedatabase.app"
+              class="w-full px-3 py-2.5 text-xs border border-blue-200 rounded-xl bg-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+            <button onclick="app.saveFirebaseUrl()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-2">
+              <i class="fa-solid fa-floppy-disk"></i> 儲存 Firebase URL 並立即連線
+            </button>
+          </div>
+          <details class="mt-1">
+            <summary class="text-blue-700 font-bold cursor-pointer text-[11px]">📖 如何取得 Firebase URL？點擊展開教學</summary>
+            <ol class="mt-2 space-y-1 text-[11px] text-slate-600 list-decimal list-inside leading-relaxed">
+              <li>前往 <a href="https://console.firebase.google.com" target="_blank" class="text-blue-600 underline">console.firebase.google.com</a> 用 Google 帳號登入</li>
+              <li>點「新增專案」→ 名稱填 <strong>xuanmu-finance</strong> → 建立</li>
+              <li>左側 <strong>Build → Realtime Database → 建立資料庫</strong></li>
+              <li>選 <strong>asia-southeast1 (新加坡)</strong> → 以測試模式啟動</li>
+              <li>複製資料庫 URL 貼到上方欄位</li>
+            </ol>
+          </details>
+        </div>
+
+        <!-- GitHub Pages stable link -->
+        <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
+          <div class="font-extrabold text-amber-900 text-sm flex items-center gap-1.5">
+            <i class="fa-brands fa-github text-slate-800"></i> 🌐 隨時連線網址 (穩定版)
+          </div>
+          <p class="text-slate-600 leading-relaxed">
+            此為 GitHub Pages 穩定連結，手機 4G/5G 隨時可開啟：
           </p>
           <div class="p-2.5 bg-white border border-amber-300 rounded-xl font-mono text-xs font-bold text-amber-900 select-all break-all">
-            https://ff7963dbb3a97e.lhr.life?sync=hughtong-2026
+            https://lavender30268jp-hash.github.io/xuanmu-finance/?sync=hughtong-2026
           </div>
-          <button onclick="app.copyOutdoorSyncLink()" class="w-full py-2 bg-amber-200 hover:bg-amber-300 text-amber-900 font-extrabold rounded-xl text-xs mt-1">
-            📋 複製戶外 4G/5G 連線網址 (傳到 LINE)
+          <button onclick="navigator.clipboard.writeText('https://lavender30268jp-hash.github.io/xuanmu-finance/?sync=hughtong-2026').then(()=>alert('已複製！'))" class="w-full py-2 bg-amber-200 hover:bg-amber-300 text-amber-900 font-extrabold rounded-xl text-xs mt-1">
+            📋 複製連線網址 (傳到 LINE)
           </button>
         </div>
 
         <!-- QR Code -->
         <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col items-center text-center space-y-2">
           <div class="font-extrabold text-emerald-900 text-sm">
-            📱 手機掃描 QR Code 戶外一鍵開啟
+            📱 手機掃描 QR Code 一鍵開啟
           </div>
-          <p class="text-slate-600 text-[11px]">請使用手機相機掃描下方 QR Code，在戶外直接開啟：</p>
+          <p class="text-slate-600 text-[11px]">請使用手機相機掃描下方 QR Code：</p>
           <div class="p-2 bg-white rounded-xl border border-emerald-200 shadow-sm">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://ff7963dbb3a97e.lhr.life?sync=hughtong-2026" alt="QR Code" class="w-36 h-36">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&amp;data=https://lavender30268jp-hash.github.io/xuanmu-finance/?sync=hughtong-2026" alt="QR Code" class="w-36 h-36">
           </div>
         </div>
 
         <!-- Manual Sync & Import/Export Section -->
         <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-2">
           <div class="font-extrabold text-indigo-900 text-sm flex items-center justify-between">
-            <span class="flex items-center gap-1.5"><i class="fa-solid fa-rotate text-indigo-600"></i> 🔄 強制雙向同步與資料備份</span>
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-rotate text-indigo-600"></i> 🔄 強制同步與資料備份</span>
             <span id="cloud-sync-status-text" class="text-[10px] text-indigo-600 font-bold">已連線</span>
           </div>
           <button onclick="app.pullFromCloud(); alert('已向雲端連線同步最新數據！');" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs shadow-md transition-colors flex items-center justify-center gap-2">
-            <i class="fa-solid fa-arrows-rotate"></i> 🔄 立即同步雲端最新 9 月資料
+            <i class="fa-solid fa-arrows-rotate"></i> 🔄 立即同步最新資料
           </button>
           <div class="grid grid-cols-2 gap-2 pt-1">
             <button onclick="app.exportDataJSON()" class="py-2 bg-white border border-indigo-200 text-indigo-800 font-bold hover:bg-indigo-100 rounded-xl text-xs">
@@ -705,17 +738,11 @@
           </div>
         </div>
 
-        <!-- Local Wi-Fi Link -->
-        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-1">
-          <div class="font-bold text-slate-700 text-xs">🏠 家中 Wi-Fi 備用網址</div>
-          <div class="font-mono text-[11px] text-slate-600">http://192.168.88.234:8080?sync=hughtong-2026</div>
-        </div>
-
       </div>
     </div>
   </div>
 
-  <script src="app.js?v=20260907-v40"></script>
+  <script src="app.js?v=20260928-v44"></script>
   <!-- Modal 6: Account Breakdown & Transaction Details -->
   <div id="modal-account-details" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl w-full max-w-2xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col modal-pop-animation">

@@ -13,6 +13,7 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const DEFAULT_TRANSACTIONS = [
+  { id: 'tx-32', date: '2026-09-15', type: '轉帳', sourceAccount: '郵局 (實體存簿)', targetAccount: '永豐大戶 (DAWHO)', category: '其他', fund: '宣穆戶頭', amount: 135000, note: '郵局轉出至永豐 (全數移轉)' },
   { id: 'tx-31', date: '2026-09-05', type: '轉帳', sourceAccount: '郵局 (實體存簿)', targetAccount: '永豐大戶 (DAWHO)', category: '其他', fund: '宣穆基金', amount: 7421, note: '永豐先付，轉帳歸還' },
   { id: 'tx-30', date: '2026-09-04', type: '支出', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: 'LINE 阿萌', category: '其他', fund: '宣穆基金', amount: 30000, note: '借給阿萌' },
   { id: 'tx-29', date: '2026-09-01', type: '支出', sourceAccount: 'LINE 阿萌', targetAccount: '商家/用品店', category: '育兒用品', fund: '宣穆基金', amount: 3013, note: '8月底統計' },
@@ -64,7 +65,11 @@ const DEFAULT_QUICK_PRESETS = [
   { id: 'qp-reimburse', name: '💸 還錢給阿彤 (代付歸還)', mode: 'prompt-reimburse', type: '轉帳', sourceAccount: '永豐大戶 (DAWHO)', targetAccount: '💳 阿彤代付', category: '其他', fund: '宣穆基金', note: '歸還阿彤代付款', icon: 'fa-hand-holding-hand text-indigo-500', border: 'border-indigo-200 hover:border-indigo-400 bg-indigo-50/40', desc: '從宣穆基金/銀行歸還墊款給阿彤' }
 ];
 
-const APP_BUILD_VER = '20260916_v42';
+// Firebase Realtime Database URL - set via the sync settings modal
+// Format: https://<project-id>-default-rtdb.<region>.firebasedatabase.app
+const FIREBASE_URL_KEY = 'xm_firebase_url';
+
+const APP_BUILD_VER = '20260928_v44';
 
 class XuanMuFinanceApp {
   constructor() {
@@ -326,6 +331,93 @@ class XuanMuFinanceApp {
     this.pushToCloud();
   }
 
+  getFirebaseUrl() {
+    return localStorage.getItem(FIREBASE_URL_KEY) || '';
+  }
+
+  getFirebasePath() {
+    const base = this.getFirebaseUrl().replace(/\/$/, '');
+    if (!base) return null;
+    return `${base}/sync/${this.syncRoomKey}.json`;
+  }
+
+  saveFirebaseUrl() {
+    const input = document.getElementById('firebase-url-input');
+    const badge = document.getElementById('firebase-status-badge');
+    const url = (input?.value || '').trim();
+
+    if (!url) {
+      if (badge) {
+        badge.textContent = '⏳ 未設定';
+        badge.className = 'text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 inline-block';
+      }
+      localStorage.removeItem(FIREBASE_URL_KEY);
+      alert('Firebase URL 已清除，將不再使用 Firebase 同步。');
+      return;
+    }
+
+    if (!url.startsWith('https://') || !url.includes('firebasedatabase.app')) {
+      alert('Firebase URL 格式不正確，請重新確認。\n格式應為：https://xxx-default-rtdb.asia-southeast1.firebasedatabase.app');
+      return;
+    }
+
+    localStorage.setItem(FIREBASE_URL_KEY, url);
+    if (badge) {
+      badge.textContent = '✅ 已設定 - 正在驗證連線...';
+      badge.className = 'text-[11px] font-bold px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 inline-block';
+    }
+
+    // Test the connection immediately
+    const testPath = `${url.replace(/\/$/, '')}/sync/${this.syncRoomKey}.json`;
+    fetch(testPath).then(r => {
+      if (r.ok) {
+        if (badge) {
+          badge.textContent = '✅ Firebase 連線成功！';
+          badge.className = 'text-[11px] font-bold px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 inline-block';
+        }
+        // Push current data to Firebase immediately
+        this.pushToCloud();
+        this.pullFromCloud();
+        alert('🎉 Firebase 設定成功！手機與電腦現在已完全同步！');
+      } else {
+        if (badge) {
+          badge.textContent = `⚠️ 連線失敗 (HTTP ${r.status})`;
+          badge.className = 'text-[11px] font-bold px-3 py-1.5 rounded-xl bg-rose-100 text-rose-700 inline-block';
+        }
+        alert(`Firebase 連線失敗 (HTTP ${r.status})。\n請確認 URL 正確，且資料庫已開啟「測試模式」。`);
+      }
+    }).catch(err => {
+      if (badge) {
+        badge.textContent = '⚠️ 無法連線';
+        badge.className = 'text-[11px] font-bold px-3 py-1.5 rounded-xl bg-rose-100 text-rose-700 inline-block';
+      }
+      alert(`Firebase 連線失敗：${err.message}\n請確認 URL 正確且網路連線正常。`);
+    });
+  }
+
+  openCloudSyncModal() {
+    const modal = document.getElementById('modal-cloud-sync');
+    if (!modal) return;
+
+    // Pre-populate Firebase URL input
+    const urlInput = document.getElementById('firebase-url-input');
+    const badge = document.getElementById('firebase-status-badge');
+    const savedUrl = this.getFirebaseUrl();
+
+    if (urlInput) urlInput.value = savedUrl;
+    if (badge) {
+      if (savedUrl) {
+        badge.textContent = '✅ 已設定 Firebase URL';
+        badge.className = 'text-[11px] font-bold px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-700 inline-block';
+      } else {
+        badge.textContent = '⏳ 未設定';
+        badge.className = 'text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 inline-block';
+      }
+    }
+
+    modal.classList.remove('hidden');
+  }
+
   async pushToCloud() {
     try {
       const nowStr = new Date().toISOString();
@@ -341,50 +433,50 @@ class XuanMuFinanceApp {
         accounts: this.accounts,
         quickPresets: this.quickPresets
       };
+
+      // 1. Firebase Realtime Database (primary - unlimited free)
+      const fbPath = this.getFirebasePath();
+      if (fbPath) {
+        await fetch(fbPath, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      }
       
-      // 1. Local Tunnel / Ruby Server Sync (if running)
+      // 2. Local Tunnel / Ruby Server Sync (if running)
       await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       }).catch(() => {});
 
-      // 2. Global Cloud Sync Engine (with dynamic object recovery)
-      let objectId = localStorage.getItem('xm_cloud_obj_id_' + this.syncRoomKey) || 'ff808181a067127101a07b0e46af3212';
-      let putRes = await fetch(`https://api.restful-api.dev/objects/${objectId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: `xuanmu-finance-${this.syncRoomKey}`, data: payload })
-      }).catch(() => null);
-
-      if (!putRes || !putRes.ok) {
-        let postRes = await fetch('https://api.restful-api.dev/objects', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: `xuanmu-finance-${this.syncRoomKey}`, data: payload })
-        }).then(r => r.json()).catch(() => null);
-
-        if (postRes && postRes.id) {
-          localStorage.setItem('xm_cloud_obj_id_' + this.syncRoomKey, postRes.id);
-        }
-      }
-      
       const statusEl = document.getElementById('cloud-sync-status-text');
-      if (statusEl) statusEl.textContent = `已即時雲端同步 (${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})})`;
+      if (statusEl) {
+        const badge = fbPath ? '☁️ Firebase' : '💾 本機';
+        statusEl.textContent = `${badge} 已同步 (${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})})`;
+      }
     } catch (e) {}
   }
 
   async pullFromCloud(isSilent = false) {
     try {
       let payload = null;
-      let resLocal = await fetch('/api/sync').then(r => r.json()).catch(() => null);
-      if (resLocal && resLocal.transactions && Array.isArray(resLocal.transactions)) {
-        payload = resLocal;
-      } else {
-        let objectId = localStorage.getItem('xm_cloud_obj_id_' + this.syncRoomKey) || 'ff808181a067127101a07b0e46af3212';
-        let resRestful = await fetch(`https://api.restful-api.dev/objects/${objectId}`).then(r => r.json()).catch(() => null);
-        if (resRestful && resRestful.data && resRestful.data.transactions && Array.isArray(resRestful.data.transactions)) {
-          payload = resRestful.data;
+
+      // 1. Firebase Realtime Database (primary)
+      const fbPath = this.getFirebasePath();
+      if (fbPath) {
+        const fbRes = await fetch(fbPath).then(r => r.ok ? r.json() : null).catch(() => null);
+        if (fbRes && fbRes.transactions && Array.isArray(fbRes.transactions)) {
+          payload = fbRes;
+        }
+      }
+
+      // 2. Local server fallback
+      if (!payload) {
+        let resLocal = await fetch('/api/sync').then(r => r.json()).catch(() => null);
+        if (resLocal && resLocal.transactions && Array.isArray(resLocal.transactions)) {
+          payload = resLocal;
         }
       }
 
@@ -537,6 +629,15 @@ class XuanMuFinanceApp {
           else if (tx.fund === '宣穆投資') xuanmuInvest -= amt;
           else otherFund -= amt;
         }
+      } else if (tx.type === '轉帳') {
+        // Transfers between accounts: deduct from source fund, credit to target fund if different
+        // This ensures fund stats reflect actual account balances (e.g. 郵局→永豐 reduces 宣穆戶頭)
+        if (tx.fund === '宣穆戶頭') xuanmuAccount -= amt;
+        else if (tx.fund === '宣穆基金') xuanmuFund -= amt;
+        else if (tx.fund === '宣穆投資') xuanmuInvest -= amt;
+        else otherFund -= amt;
+        // If transferring INTO investment account, credit xuanmuInvest
+        if (tgt.includes('投資戶')) xuanmuInvest += amt;
       }
 
       // 2. Account Balances & Mom Advance Tracking
@@ -604,9 +705,11 @@ class XuanMuFinanceApp {
     const data = this.calculateBalances();
 
     document.getElementById('card-total-assets').textContent = `$${data.totalAssets.toLocaleString()}`;
-    document.getElementById('card-xuanmu-account').textContent = `$${data.xuanmuAccount.toLocaleString()}`;
+    // 宣穆戶頭 = 郵局 (實體存簿) 帳戶實際餘額 (統一與彈窗顯示一致)
+    document.getElementById('card-xuanmu-account').textContent = `$${(data.accountBalances['郵局 (實體存簿)'] || 0).toLocaleString()}`;
     document.getElementById('card-xuanmu-fund').textContent = `$${data.xuanmuFund.toLocaleString()}`;
-    document.getElementById('card-xuanmu-invest').textContent = `$${(data.xuanmuInvest + data.otherFund + (data.accountBalances['宣穆永豐個人戶 (投資戶)'] || 0)).toLocaleString()}`;
+    // 宣穆投資 = 投資戶實際帳戶餘額（最精確）
+    document.getElementById('card-xuanmu-invest').textContent = `$${(data.accountBalances['宣穆永豐個人戶 (投資戶)'] || 0).toLocaleString()}`;
     document.getElementById('badge-total-transactions').textContent = `${this.transactions.length} 筆紀錄 ➔`;
 
     this.renderCategoryDropdowns();
@@ -1416,22 +1519,28 @@ class XuanMuFinanceApp {
           totalIn += amt;
           flowDir = `存入 / 轉入 (來源: ${src === tgt ? '政府補助/親友' : src})`;
           colorClass = 'text-emerald-600';
-        } else if (tgt.includes('投資戶')) {
+        } else if (t.type === '轉帳' && tgt.includes('投資戶')) {
           isPositive = true;
           totalIn += amt;
           flowDir = `劃撥轉入投資戶 (去向: ${tgt})`;
           colorClass = 'text-purple-600';
+        } else if (t.type === '轉帳') {
+          totalOut += amt;
+          flowDir = `轉帳轉出 (去向: ${tgt})`;
+          colorClass = 'text-orange-600';
         } else {
           totalOut += amt;
-          flowDir = `支出 / 轉出 (去向: ${tgt})`;
+          flowDir = `支出 (去向: ${tgt})`;
           colorClass = 'text-rose-600';
         }
 
         const typeBadge = t.type === '收入' 
           ? '<span class="text-[10px] px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-bold">收入</span>' 
-          : (tgt.includes('投資戶') 
-              ? '<span class="text-[10px] px-2 py-0.2 rounded-full bg-purple-100 text-purple-800 font-bold">轉入投資</span>' 
-              : '<span class="text-[10px] px-2 py-0.2 rounded-full bg-rose-100 text-rose-800 font-bold">支出</span>');
+          : (tgt.includes('投資戶') && t.type === '轉帳'
+              ? '<span class="text-[10px] px-2 py-0.2 rounded-full bg-purple-100 text-purple-800 font-bold">轉入投資</span>'
+              : (t.type === '轉帳'
+                  ? '<span class="text-[10px] px-2 py-0.2 rounded-full bg-orange-100 text-orange-800 font-bold">轉帳</span>'
+                  : '<span class="text-[10px] px-2 py-0.2 rounded-full bg-rose-100 text-rose-800 font-bold">支出</span>'));
 
         const item = document.createElement('div');
         item.className = 'p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between hover:bg-amber-50/60 transition-colors';
@@ -1462,6 +1571,12 @@ class XuanMuFinanceApp {
     const netBal = totalIn - totalOut;
     if (fundType === 'total') {
       balEl.textContent = `$${data.totalAssets.toLocaleString()}`;
+    } else if (fundType === '宣穆戶頭') {
+      // 統一使用郵局實際帳戶餘額，與外層卡片一致
+      balEl.textContent = `$${(data.accountBalances['郵局 (實體存簿)'] || 0).toLocaleString()}`;
+    } else if (fundType === '宣穆投資') {
+      // 統一使用投資戶實際帳戶餘額，與外層卡片一致
+      balEl.textContent = `$${(data.accountBalances['宣穆永豐個人戶 (投資戶)'] || 0).toLocaleString()}`;
     } else {
       balEl.textContent = `$${netBal.toLocaleString()}`;
     }
