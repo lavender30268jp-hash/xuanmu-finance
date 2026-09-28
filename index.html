@@ -27,6 +27,7 @@ img{max-width:100%}
   --accent:#0E6B63; --accent-ink:#FFFFFF; --accent-soft:#DCEEEB;
   --in:#1E7A46; --out:#B23A2E; --tr:#A86400; --in-soft:#E1F2E7; --out-soft:#F8E4E1; --tr-soft:#F7ECD9;
   --f1:#0E6B63; --f2:#7A4DB0; --f3:#C2572B; --f0:#6B7D79;
+  --c1:#2a78d6; --c2:#eb6834; --c3:#1baf7a; --c4:#eda100; --c5:#e87ba4; --c6:#008300; --grid:#DDE6E3;
   --display:"LXGW WenKai TC","Noto Sans TC","PingFang TC","Microsoft JhengHei",serif;
   --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
   --num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -37,6 +38,7 @@ img{max-width:100%}
   --accent:#4DB6A9; --accent-ink:#0B1A17; --accent-soft:#1D3934;
   --in:#62CD8F; --out:#F07D6F; --tr:#E8AC4E; --in-soft:#193628; --out-soft:#3A201D; --tr-soft:#3A2D16;
   --f1:#4DB6A9; --f2:#B596E6; --f3:#EE8C5F; --f0:#93A9A4;
+  --c1:#3987e5; --c2:#d95926; --c3:#199e70; --c4:#c98500; --c5:#d55181; --c6:#008300; --grid:#2A3F3A;
 }}
 :root[data-theme="dark"]{
   color-scheme:dark;
@@ -44,6 +46,7 @@ img{max-width:100%}
   --accent:#4DB6A9; --accent-ink:#0B1A17; --accent-soft:#1D3934;
   --in:#62CD8F; --out:#F07D6F; --tr:#E8AC4E; --in-soft:#193628; --out-soft:#3A201D; --tr-soft:#3A2D16;
   --f1:#4DB6A9; --f2:#B596E6; --f3:#EE8C5F; --f0:#93A9A4;
+  --c1:#3987e5; --c2:#d95926; --c3:#199e70; --c4:#c98500; --c5:#d55181; --c6:#008300; --grid:#2A3F3A;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -122,6 +125,32 @@ h2{font-family:var(--display);font-size:20px;margin:0 0 10px;font-weight:700}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--fc)}
 .recon{border-top:1px dashed var(--line);padding-top:6px;font-size:12.5px;display:flex;flex-direction:column;gap:2px}
 .recon div{display:flex;justify-content:space-between;gap:8px}
+
+/* charts */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.charts{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0;position:relative}
+.card.wide{grid-column:1/-1}
+.card h3{margin:0;font-size:15px}
+.card .sub{font-size:12.5px;color:var(--muted);margin-top:-6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.chartbox{position:relative;width:100%}
+.chartbox svg{display:block;width:100%;height:auto;overflow:visible}
+.chartbox text{font-family:var(--num);font-size:11px;fill:var(--muted)}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.5;white-space:nowrap;z-index:5;transform:translate(-50%,-100%);margin-top:-8px}
+.tip b{font-family:var(--num)}
+.donutwrap{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.donutwrap svg{width:170px;height:170px;flex:none}
+.dlist{flex:1;min-width:180px;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.dlist div{display:grid;grid-template-columns:12px 1fr auto auto;gap:8px;align-items:center}
+.dlist i{width:10px;height:10px;border-radius:3px}
+.dlist .p{color:var(--muted);font-size:12px;min-width:36px;text-align:right}
+.hbars{display:flex;flex-direction:column;gap:9px}
+.hbar{display:grid;grid-template-columns:minmax(90px,38%) 1fr;gap:10px;align-items:center;font-size:13.5px}
+.hbar .t{height:14px;background:var(--surface2);border-radius:4px;overflow:hidden;position:relative}
+.hbar .t i{display:block;height:100%;background:var(--f1);border-radius:0 4px 4px 0}
+.hbar .v{font-family:var(--num);font-size:12.5px;color:var(--muted);margin-top:2px}
 
 /* ledger */
 .filters{display:flex;gap:8px;flex-wrap:wrap}
@@ -222,6 +251,11 @@ h2{font-family:var(--display);font-size:20px;margin:0 0 10px;font-weight:700}
     <section class="section" id="actSec">
       <div class="actions" id="actions"></div>
       <div class="actmore"><button class="linkbtn" id="btnTransfer">帳戶之間轉帳・借出／收回</button></div>
+    </section>
+
+    <section class="section" id="chartSec">
+      <div class="sechead"><h2>圖表</h2><span class="hint">把手指或滑鼠移到長條上看明細</span></div>
+      <div class="charts" id="charts"></div>
     </section>
 
     <section class="section">
@@ -341,7 +375,7 @@ function render(){
   $("#appTitle").textContent=c.title||"小萌馬金庫";
   $("#appSub").textContent=(c.child?c.child+"的":"")+"育兒資金帳本・手機電腦同一份資料";
   S.st=compute();
-  renderWarnings();renderHero();renderActions();renderAccounts();renderLedger();
+  renderWarnings();renderHero();renderActions();renderCharts();renderAccounts();renderLedger();
   const tc=[...S.tx.values()].filter(t=>t.deleted).length;
   $("#trashCount").textContent=tc?tc:"";
 }
@@ -356,8 +390,9 @@ function renderWarnings(){
 }
 
 function renderHero(){
-  const {F}=S.st;const ids=funds().map(f=>f.id).concat(F._none&&(F._none.in||F._none.out)?["_none"]:[]);
-  const rem=id=>F[id]?F[id].in-F[id].out:0;
+  const {F}=S.st;
+  const rem=id=>F[id]?Math.round(F[id].in-F[id].out):0;
+  const ids=funds().filter(f=>f.yearly||rem(f.id)!==0).map(f=>f.id).concat(F._none&&rem("_none")!==0?["_none"]:[]);
   const total=ids.reduce((s,id)=>s+rem(id),0);
   const pos=ids.filter(id=>rem(id)>0);const posSum=pos.reduce((s,id)=>s+rem(id),0)||1;
   const cards=ids.map(id=>{
@@ -365,19 +400,90 @@ function renderHero(){
     let sub;
     if(fd&&fd.yearly){const pct=Math.min(100,Math.round(f.yOut/fd.yearly*100));
       sub=`<div class="bar"><i style="width:${pct}%"></i></div><div class="fs">${P.label} 年度 ${money(fd.yearly)}<br>已用 <span class="num">${money(f.yOut)}</span>・本月 <span class="num">${money(f.mOut)}</span></div>`}
-    else sub=`<div class="fs">累計收到 <span class="num">${money(f.in)}</span>・已用 <span class="num">${money(f.out)}</span></div>`;
+    else if(fd&&fd.homeAcc&&accById(fd.homeAcc)){const inHome=Math.round((f.loc||{})[fd.homeAcc]||0),rest=rem(id)-inHome;
+      const pct=rem(id)>0?Math.max(0,Math.min(100,Math.round(inHome/rem(id)*100))):0;
+      sub=`<div class="bar"><i style="width:${pct}%"></i></div><div class="fs">在${esc(accById(fd.homeAcc).name)} <span class="num">${money(inHome)}</span>${rest?`<br>還在其他帳戶 <span class="num">${money(rest)}</span>，記得轉進去`:"<br>全部都存進去了"}</div>`}
+    else sub=`<div class="fs">累計收到 <span class="num">${money(f.in)}</span>・已花用 <span class="num">${money(f.out)}</span></div>`;
     return `<button class="fund" style="--fc:${fundColor(id)}" data-fund="${id}"><span class="fn">${esc(fundName(id))}</span><span class="fb num ${rem(id)<0?"neg":""}">${money(rem(id))}</span>${sub}</button>`}).join("");
   $("#hero").innerHTML=`<div class="total"><div class="lbl">屬於${esc(S.cfg.child||"孩子")}的錢（還在銀行帳戶裡）</div><div class="big num">${money(total)}</div>
     <div class="split">${pos.map(id=>`<i style="width:${rem(id)/posSum*100}%;background:${fundColor(id)}"></i>`).join("")}</div>
     <div class="foot">撥進零用錢包的錢算已用掉。點右邊的基金看錢花到哪裡、現在放在哪個帳戶。</div></div><div class="funds">${cards}</div>`;
 }
 
+/* ---------- charts ---------- */
+const SER=["var(--c1)","var(--c2)","var(--c3)","var(--c4)","var(--c5)","var(--c6)"];
+const kfmt=n=>{n=Math.round(n);return Math.abs(n)>=10000?(n/10000).toFixed(n%10000?1:0).replace(/\.0$/,"")+"萬":n.toLocaleString("zh-TW")};
+function renderCharts(){
+  const sec=$("#chartSec");if(!accounts().length){sec.hidden=true;return}sec.hidden=false;
+  const fd=funds().find(f=>f.yearly)||funds()[0];if(!fd){sec.hidden=true;return}
+  const target=Number(S.cfg.monthlyTarget)||0;
+  // money leaving the bank accounts from the main fund, grouped by where it went
+  const wallets=accounts().filter(a=>a.kind==="wallet");
+  const series=wallets.map(a=>({k:a.id,l:"撥到"+a.name})).concat([{k:"_direct",l:"直接付款"}]);
+  const keyOf=t=>t.type==="支出"?"_direct":(kind(t.to)==="wallet"?t.to:"_direct");
+  const outs=liveTx().filter(t=>(t.fund||"")===fd.id&&isBank(t.from)&&(t.type==="支出"||(t.type==="轉帳"&&!isBank(t.to))));
+  const now=new Date();const months=[];for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"))}
+  const M=months.map(m=>{const r={m,total:0};series.forEach(s=>r[s.k]=0);outs.filter(t=>(t.date||"").startsWith(m)).forEach(t=>{const k=keyOf(t);r[k]=(r[k]||0)+Number(t.amount);r.total+=Number(t.amount)});return r});
+  // where the child's money sits now
+  const {bal}=S.st;
+  const holds=accounts().filter(a=>(a.kind==="bank"||a.kind==="loan")&&Math.round(bal[a.id])>0);
+  const holdTotal=holds.reduce((s,a)=>s+bal[a.id],0);
+  // this budget year's spending by destination
+  const P=budgetPeriod(fd);const dest={};
+  outs.filter(t=>t.date>=P.start&&t.date<=P.end).forEach(t=>{const k=t.type==="支出"?(t.category||"其他"):label(t.to);dest[k]=(dest[k]||0)+Number(t.amount)});
+  const dl=Object.entries(dest).sort((a,b)=>b[1]-a[1]);const dmax=dl.length?dl[0][1]:1;const dsum=dl.reduce((s,[,v])=>s+v,0);
+  $("#charts").innerHTML=`
+    <div class="card wide"><h3>${esc(fd.name)}每月用了多少</h3><div class="sub">最近 6 個月・虛線是每月目標 ${money(target)}</div>
+      <div class="legend">${series.map((s,i)=>`<span><i style="background:${SER[i]}"></i>${esc(s.l)}</span>`).join("")}</div>
+      <div class="chartbox" id="cMonthly"></div></div>
+    <div class="card"><h3>${esc(S.cfg.child||"孩子")}的錢放在哪裡</h3><div class="sub">銀行帳戶和借出去的錢，合計 ${money(holdTotal)}</div>
+      ${holds.length?`<div class="donutwrap">${donut(holds.map((a,i)=>({v:bal[a.id],c:SER[accounts().filter(x=>x.kind==="bank"||x.kind==="loan").indexOf(a)%SER.length]})),holdTotal)}
+      <div class="dlist">${holds.map(a=>{const i=accounts().filter(x=>x.kind==="bank"||x.kind==="loan").indexOf(a);return `<div><i style="background:${SER[i%SER.length]}"></i><span>${esc(a.name)}</span><span class="num">${money(bal[a.id])}</span><span class="p">${Math.round(bal[a.id]/holdTotal*100)}%</span></div>`}).join("")}</div></div>`:`<p class="hint">還沒有餘額</p>`}</div>
+    <div class="card"><h3>${esc(fd.name)}今年花到哪裡</h3><div class="sub">${P.label} 年度・共 ${money(dsum)}</div>
+      ${dl.length?`<div class="hbars">${dl.map(([k,v])=>`<div class="hbar"><span>${esc(k)}</span><div><div class="t"><i style="width:${Math.max(2,v/dmax*100)}%"></i></div><div class="v">${money(v)}・${Math.round(v/dsum*100)}%</div></div></div>`).join("")}</div>`:`<p class="hint">這個年度還沒有支出</p>`}</div>`;
+  drawMonthly($("#cMonthly"),M,series,target);
+}
+function donut(parts,total){
+  const R=80,r=52,C=85;let a0=-Math.PI/2;const gap=parts.length>1?0.012:0;
+  const arc=(a1,a2)=>{const p=(rad,ang)=>[C+rad*Math.cos(ang),C+rad*Math.sin(ang)];const L=a2-a1>Math.PI?1:0;const [x1,y1]=p(R,a1),[x2,y2]=p(R,a2),[x3,y3]=p(r,a2),[x4,y4]=p(r,a1);
+    return `M${x1},${y1}A${R},${R} 0 ${L} 1 ${x2},${y2}L${x3},${y3}A${r},${r} 0 ${L} 0 ${x4},${y4}Z`};
+  const paths=parts.map(pt=>{const da=pt.v/total*Math.PI*2;const a1=a0+gap,a2=a0+da-gap;a0+=da;
+    return da>=Math.PI*2-0.001?`<circle cx="${C}" cy="${C}" r="${(R+r)/2}" fill="none" stroke="${pt.c}" stroke-width="${R-r}"/>`:`<path d="${arc(a1,Math.max(a1+0.001,a2))}" fill="${pt.c}"/>`}).join("");
+  return `<svg viewBox="0 0 170 170" role="img" aria-label="資產分布圓餅圖">${paths}<text x="85" y="80" text-anchor="middle" style="font-size:12px;fill:var(--muted);font-family:var(--body)">合計</text><text x="85" y="100" text-anchor="middle" style="font-size:15px;font-weight:600;fill:var(--ink);font-family:var(--num)">${kfmt(total)}</text></svg>`;
+}
+function drawMonthly(box,M,series,target){
+  const W=Math.max(280,box.clientWidth||600),H=220,pl=46,pr=8,pt=14,pb=26;
+  const max=Math.max(target*1.15,...M.map(r=>r.total))||1;
+  const step=[5000,10000,20000,50000,100000].find(s=>max/s<=5)||Math.ceil(max/5);
+  const top=Math.ceil(max/step)*step;const y=v=>pt+(H-pt-pb)*(1-v/top);
+  const bw=(W-pl-pr)/M.length;const barW=Math.min(44,bw*0.56);
+  let g="";
+  for(let v=0;v<=top;v+=step)g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)" stroke-width="1"/><text x="${pl-6}" y="${y(v)+4}" text-anchor="end">${kfmt(v)}</text>`;
+  M.forEach((r,i)=>{const cx=pl+bw*i+bw/2;let acc=0;const segs=series.map((s,si)=>({v:r[s.k]||0,c:SER[si]})).filter(x=>x.v>0);
+    segs.forEach((sg,j)=>{const y1=y(acc+sg.v),y0=y(acc);acc+=sg.v;const h=Math.max(0,y0-y1-(j<segs.length-1?2:0));const x=cx-barW/2;
+      if(j===segs.length-1){const rr=Math.min(4,h);g+=`<path d="M${x},${y1+h}V${y1+rr}Q${x},${y1} ${x+rr},${y1}H${x+barW-rr}Q${x+barW},${y1} ${x+barW},${y1+rr}V${y1+h}Z" fill="${sg.c}"/>`}
+      else g+=`<rect x="${x}" y="${y1+2}" width="${barW}" height="${Math.max(0,y0-y1-2)}" fill="${sg.c}"/>`});
+    if(r.total)g+=`<text x="${cx}" y="${y(r.total)-5}" text-anchor="middle" style="fill:var(--ink)">${kfmt(r.total)}</text>`;
+    g+=`<text x="${cx}" y="${H-8}" text-anchor="middle">${Number(r.m.slice(5))}月</text>`;
+    g+=`<rect x="${pl+bw*i}" y="${pt}" width="${bw}" height="${H-pt-pb}" fill="transparent" data-mi="${i}" style="cursor:default"/>`});
+  if(target)g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(target)}" y2="${y(target)}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="5 4" opacity=".55"/><text x="${W-pr}" y="${y(target)-5}" text-anchor="end" style="fill:var(--ink)">目標 ${kfmt(target)}</text>`;
+  g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)" stroke-width="1"/>`;
+  box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="每月用量長條圖">${g}</svg><div class="tip" hidden></div>`;
+  const tip=box.querySelector(".tip");
+  const show=e=>{const t=e.target.closest("[data-mi]");if(!t){tip.hidden=true;return}const r=M[Number(t.dataset.mi)];
+    tip.innerHTML=`${roc(r.m.slice(0,4))}年${Number(r.m.slice(5))}月　合計 <b>${money(r.total)}</b>`+series.filter(s=>r[s.k]).map(s=>`<br>${esc(s.l)}　<b>${money(r[s.k])}</b>`).join("")+(target?`<br>${r.total>target?"超過目標 "+money(r.total-target):"比目標少 "+money(target-r.total)}`:"");
+    const bx=box.getBoundingClientRect(),tb=t.getBoundingClientRect();tip.hidden=false;
+    let left=tb.left-bx.left+tb.width/2;left=Math.max(tip.offsetWidth/2,Math.min(bx.width-tip.offsetWidth/2,left));tip.style.left=left+"px";tip.style.top=(y(r.total)*(bx.width/W))+"px"};
+  box.onpointermove=show;box.onpointerdown=show;box.onpointerleave=()=>tip.hidden=true;
+}
+let rsT;window.addEventListener("resize",()=>{clearTimeout(rsT);rsT=setTimeout(()=>{if(S.st&&!$("#chartSec").hidden)renderCharts()},200)});
+
 function renderActions(){
   const {bal}=S.st;const adv=advanceAcc();const owed=adv?Math.max(0,-bal[adv.id]):0;
   const wl=accounts().filter(a=>a.kind==="wallet"&&!a.archived).map(a=>a.name).join("・");
   $("#actSec").hidden=!S.canWrite||!accounts().length;
   $("#actions").innerHTML=`
-    <button class="act" data-action="income"><span class="ic in">＋</span><span><b>收到錢</b><span>宣穆基金・政府津貼・紅包</span></span></button>
+    <button class="act" data-action="income"><span class="ic in">＋</span><span><b>收到錢</b><span>基金撥款・政府津貼・紅包</span></span></button>
     <button class="act" data-action="topup"><span class="ic tr">→</span><span><b>撥零用錢</b><span>${esc(wl||"零用錢包")}</span></span></button>
     <button class="act" data-action="spend"><span class="ic out">－</span><span><b>記花費</b><span>錢包花的・我先刷卡的</span></span></button>
     <button class="act" data-action="settle"><span class="ic st">✓</span><span><b>月底結算</b><span>${owed?`我先墊了 <span class="num">${money(owed)}</span>`:"從共同錢包扣回代墊"}</span></span></button>`;
@@ -583,6 +689,7 @@ function openSettings(){
     <div class="setsec"><p class="subh">錢的來源（基金）</p><p class="hint">填了每年金額，首頁會顯示年度用量。年度從幾月開始：<select id="sStart">${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===Number((fds[0]||{}).startMonth||1)?"selected":""}>${i+1} 月</option>`).join("")}</select></p>
       <div class="setlist" id="fundList">${fundRows()}</div><button class="btn" id="addFund" type="button">＋ 新增來源</button></div>
     <div class="setsec"><p class="subh">帳戶</p><p class="hint">隱藏的帳戶不會出現在選單裡，舊紀錄和餘額會保留。</p><div class="setlist" id="accList">${accRows()}</div><button class="btn" id="addAcc" type="button">＋ 新增帳戶</button></div>
+    <div class="setsec"><div class="f"><label for="sTarget">每月目標（圖表上的虛線）</label><input id="sTarget" inputmode="numeric" value="${esc(c.monthlyTarget||"")}" placeholder="例如 30000"></div></div>
     <div class="setsec"><div class="f"><label for="sCats">花費分類（用逗號分開）</label><input id="sCats" value="${esc((c.categories||[]).join("，"))}"></div></div>
     <div class="err" id="sErr" role="alert"></div>`;
   openSheet("設定",body,`<button class="btn" id="sCancel">取消</button><button class="btn primary" id="sSave">儲存設定</button>`,()=>{
@@ -598,7 +705,7 @@ function openSettings(){
       accs.forEach(a=>{a.name=a.name.trim();if(a.topup!==undefined)a.topup=Number(a.topup)||0});
       fds.forEach(f=>{f.name=f.name.trim();f.yearly=Number(f.yearly)||0;f.startMonth=sm});
       $("#sSave").disabled=true;
-      try{await saveCfg({title:$("#sTitle").value.trim(),child:$("#sChild").value.trim(),accounts:accs,funds:fds,categories:$("#sCats").value.split(/[,，、]/).map(s=>s.trim()).filter(Boolean)});closeSheet();toast("設定已儲存")}
+      try{await saveCfg({title:$("#sTitle").value.trim(),child:$("#sChild").value.trim(),accounts:accs,funds:fds,monthlyTarget:Number($("#sTarget").value)||0,categories:$("#sCats").value.split(/[,，、]/).map(s=>s.trim()).filter(Boolean)});closeSheet();toast("設定已儲存")}
       catch(e){$("#sSave").disabled=false;writeError(e,$("#sErr"))}};
   });
 }
@@ -699,6 +806,9 @@ onAuthStateChanged(auth,user=>{
   unsubs.push(S.cfgRef.onSnapshot(snap=>{
     S.cfg=snap.exists?snap.data():{title:"小萌馬金庫",child:"",accounts:[],funds:[],categories:["其他"]};
     S.loadedCfg=true;render();
+    if(snap.exists&&!S.cfg.v3&&S.canWrite){const c=clone(S.cfg);c.v3=true;if(!c.monthlyTarget)c.monthlyTarget=30000;
+      (c.funds||[]).forEach(f=>{if(f.id==="f-gov"&&f.name==="政府津貼"){f.name="宣穆投資";f.homeAcc="acc-sinopac-xuanmu"}if(f.id==="f-gift"&&/紅包/.test(f.name))f.name="其他"});
+      S.cfgRef.set(c)}
   },fail));
   unsubs.push(db.collection("tx").limit(1000).onSnapshot(snap=>{S.tx=new Map(snap.docs.map(d=>[d.id,Object.assign({},d.data(),{id:d.id})]));S.loadedTx=true;render()},fail));
 });
