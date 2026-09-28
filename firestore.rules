@@ -1,12 +1,12 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 只有這兩個 Email 登入後可以讀寫帳本
+    // 只有名單裡的 Email 登入後可以讀寫帳本。
+    // 之後要加阿萌：在下面的名單加一行 'aMeng的Email', 再到 Firebase 重新發布規則。
     function isFamily() {
       return request.auth != null
         && request.auth.token.email in [
-          'lavender30268@gmail.com',
-          'AMENG_EMAIL@example.com'
+          'lavender30268@gmail.com'
         ];
     }
     match /{document=**} {

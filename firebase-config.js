@@ -1,9 +1,9 @@
-// 貼上 Firebase「專案設定 → 你的應用程式 → 網頁」裡的 firebaseConfig
+// Firebase 網頁設定碼（不是密碼，放在網頁裡是正常的；保護資料的是登入帳號和 firestore.rules）
 export const FIREBASE_CONFIG = {
-  apiKey: "請貼上",
+  apiKey: "AIzaSyDjld6u9H9-vg4EogQF1xPfp8QAPAuz7ro",
   authDomain: "xuanmu-finance.firebaseapp.com",
   projectId: "xuanmu-finance",
-  storageBucket: "xuanmu-finance.appspot.com",
-  messagingSenderId: "請貼上",
-  appId: "請貼上"
+  storageBucket: "xuanmu-finance.firebasestorage.app",
+  messagingSenderId: "824282164674",
+  appId: "1:824282164674:web:941b1b3127e071e3f03a5b"
 };

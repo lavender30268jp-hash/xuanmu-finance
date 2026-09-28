@@ -688,7 +688,7 @@ const fs=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:pe
 let unsubs=[];
 $("#login").addEventListener("submit",async e=>{e.preventDefault();$("#lErr").textContent="";$("#lGo").disabled=true;
   try{await setPersistence(auth,browserLocalPersistence);await signInWithEmailAndPassword(auth,$("#lEmail").value.trim(),$("#lPw").value)}
-  catch(err){$("#lErr").textContent=/network/.test(err.code||"")?"連不上網路，請稍後再試。":"Email 或密碼不正確。"}finally{$("#lGo").disabled=false}});
+  catch(err){const c=err&&err.code||"";const m={"auth/network-request-failed":"連不到 Google 登入伺服器。請檢查網路，或暫時關閉廣告封鎖類的擴充功能後再試。","auth/invalid-credential":"Email 或密碼不正確。","auth/wrong-password":"Email 或密碼不正確。","auth/user-not-found":"找不到這個帳號，請確認 Firebase 使用者清單裡有這個 Email。","auth/invalid-email":"Email 格式不正確。","auth/operation-not-allowed":"Firebase 還沒開啟「電子郵件/密碼」登入方式。","auth/too-many-requests":"嘗試太多次，請過幾分鐘再試。","auth/api-key-not-valid.-please-pass-a-valid-api-key.":"Firebase 設定碼不正確。"}[c];$("#lErr").textContent=(m||"登入失敗。")+(c?`（${c}）`:"")}finally{$("#lGo").disabled=false}});
 $("#btnOut").onclick=()=>signOut(auth);
 onAuthStateChanged(auth,user=>{
   unsubs.forEach(u=>u());unsubs=[];S.loadedCfg=S.loadedTx=false;
