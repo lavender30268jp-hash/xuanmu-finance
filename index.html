@@ -364,6 +364,18 @@ function compute(){
       const k=t.type==="支出"?"直接付款・"+(t.category||"其他"):"撥到 "+label(t.to);f.dest[k]=(f.dest[k]||0)+a}
     if(between){loc(t.from,-a);loc(t.to,a);const k=label(t.to);f.moved[k]=(f.moved[k]||0)+a}
   }
+  // "我先墊": a month-end settlement can only clear advances that were actually recorded.
+  // Settling more than was owed (e.g. a monthly total without itemised advances) must not
+  // swallow later advances, so walk the advance account in date order and clamp at zero.
+  accounts().filter(a=>a.kind==="advance").forEach(a=>{
+    let owed=0;
+    liveTx().filter(t=>t.from===a.id||t.to===a.id).sort((x,y)=>sortKey(x)<sortKey(y)?-1:1).forEach(t=>{
+      const v=Number(t.amount)||0;
+      if(t.from===a.id&&t.type!=="收入")owed+=v;
+      if(t.to===a.id&&t.type!=="支出")owed=Math.max(0,owed-v);
+    });
+    bal[a.id]=-owed;
+  });
   return {bal,F,walletMonth};
 }
 
@@ -503,7 +515,7 @@ function renderAccounts(){
   const wallets=byKind("wallet").map(a=>`<div class="acc ${S.f.acc===a.id?"on":""}"><div class="ah"><button class="an" data-acc="${a.id}">${esc(a.name)}</button></div>
       <div><div class="al">錢包剩餘</div><div class="ab num ${bal[a.id]<0?"neg":""}">${money(bal[a.id])}</div></div><div class="al">本月已記花費 <span class="num">${money(walletMonth[a.id]||0)}</span>${a.note?"・"+esc(a.note):""}</div></div>`).join("");
   const adv=byKind("advance").map(a=>{const owed=-bal[a.id];return `<div class="acc ${S.f.acc===a.id?"on":""}"><div class="ah"><button class="an" data-acc="${a.id}">${esc(a.name)}</button></div>
-      <div><div class="al">還沒結算的代墊</div><div class="ab num">${money(Math.max(0,owed))}</div></div><div class="al">${owed>0?"月底按「月底結算」從共同錢包扣回":owed<0?"結算金額比代墊多 "+money(-owed):"目前都結清了"}</div></div>`}).join("");
+      <div><div class="al">還沒結算的代墊</div><div class="ab num">${money(Math.max(0,owed))}</div></div><div class="al">${owed>0?"月底按「月底結算」從共同錢包扣回":"目前都結清了"}</div></div>`}).join("");
   const loans=byKind("loan").map(a=>`<div class="acc ${S.f.acc===a.id?"on":""}"><div class="ah"><button class="an" data-acc="${a.id}">${esc(a.name)}</button></div>
       <div><div class="al">還沒還的</div><div class="ab num">${money(bal[a.id])}</div></div>${fundLines(a.id)}${a.note?`<div class="al">${esc(a.note)}</div>`:""}</div>`).join("");
   $("#accounts").innerHTML=
@@ -522,7 +534,7 @@ function renderLedger(){
   let list=liveTx().sort((a,b)=>sortKey(a)<sortKey(b)?-1:1);
   const run=new Map();
   const eff=(t,id)=>{const a=Number(t.amount)||0;let e=0;if(t.from===id&&t.type!=="收入")e-=a;if(t.to===id&&t.type!=="支出")e+=a;return e};
-  if(f.acc){let r=0;list=list.filter(t=>t.from===f.acc||t.to===f.acc);list.forEach(t=>{r+=eff(t,f.acc);run.set(t.id,r)})}
+  if(f.acc){let r=0;list=list.filter(t=>t.from===f.acc||t.to===f.acc);const adv=kind(f.acc)==="advance";list.forEach(t=>{r+=eff(t,f.acc);if(adv)r=Math.min(0,r);run.set(t.id,r)})}
   list.reverse();
   if(f.fund)list=list.filter(t=>(t.fund||"_none")===f.fund);
   if(f.month)list=list.filter(t=>(t.date||"").startsWith(f.month));
@@ -605,7 +617,7 @@ function openAction(action,tx){
   }else{
     body=`<div class="f"><span class="lb">從</span>${accChips("aFrom",["bank","loan"],t.from||defBank,true)}</div>
       <div class="f"><span class="lb">轉到</span>${accChips("aTo",["bank","loan"],t.to||"")}</div>
-      <div class="f"><span class="lb">這是哪一筆錢</span>${fundChips("aFund",t.fund||"")}<p class="hint">例如政府津貼從郵局轉到宣穆的投資戶，就選「政府津貼」。</p></div>
+      <div class="f"><span class="lb">這是哪一筆錢</span>${fundChips("aFund",t.fund||"")}<p class="hint">只記屬於宣穆的錢。例如津貼從郵局轉進宣穆投資戶，就選「宣穆投資」；你自己的錢在帳戶間搬移，不用記。</p></div>
       ${amountDate()}${note("例如：津貼轉投資戶")}`;
   }
   body+=`<div class="err" id="aErr" role="alert"></div>`;
@@ -616,8 +628,11 @@ function openAction(action,tx){
       $("#spHint").textContent=kind(p)==="advance"?"先記下來，月底按「月底結算」一次從共同錢包扣回。":kind(p)==="wallet"?"錢包的錢撥進去時已經算用掉，這裡只會減少錢包剩餘。也可以月底記一筆總額。":"直接從銀行帳戶付，會算進所選基金的支出。"};
       upd();$("#aFrom").addEventListener("pick",upd)}
     if(action==="income")$("#aFund").addEventListener("pick",e=>{const fd=fundById(e.detail);if(fd&&fd.defaultAcc)setPick("aTo",fd.defaultAcc)});
+    let confirmed="";
+    $$(".sheet input, .sheet .chip").forEach(el=>el.addEventListener(el.tagName==="INPUT"?"input":"click",()=>{if(confirmed){confirmed="";$("#aSave").textContent=edit?"儲存修改":"記下來";$("#aErr").className="err";$("#aErr").textContent=""}}));
     $("#aSave").onclick=async()=>{
-      const err=$("#aErr");const amount=Math.round(Number(String($("#aAmt").value).replace(/[,$\s]/g,"")));
+      if($("#aSave").disabled)return;
+      const err=$("#aErr");err.className="err";const amount=Math.round(Number(String($("#aAmt").value).replace(/[,$\s]/g,"")));
       if(!(amount>0))return err.textContent="請輸入大於 0 的金額。";
       const date=$("#aDate").value;if(!date)return err.textContent="請選擇日期。";
       let r={amount,date,note:$("#aNote").value.trim()};
@@ -626,6 +641,17 @@ function openAction(action,tx){
       else if(action==="spend"){r.type="支出";r.from=pick("aFrom");r.to=t.to&&!accById(t.to)?t.to:"商家";r.category=pick("aCat");r.fund=isBank(r.from)?pick("aFund"):"";if(!r.from)return err.textContent="請選擇誰付的。";if(isBank(r.from)&&!r.fund)return err.textContent="請選擇用哪一筆錢。"}
       else if(action==="settle"){r.type="轉帳";r.from=pick("aFrom");r.to=adv?adv.id:"";r.fund="";r.category="";if(!r.from)return err.textContent="請選擇錢包。";if(!adv)return err.textContent="請先在設定裡加一個「我先墊」帳戶。"}
       else{r.type="轉帳";r.from=pick("aFrom");r.to=pick("aTo");r.fund=pick("aFund");r.category="";if(!r.from||!r.to)return err.textContent="請選擇兩個帳戶。";if(r.from===r.to)return err.textContent="轉出和轉入不能是同一個帳戶。"}
+      // guard 1: money leaving a bank account that the ledger says isn't the child's
+      const warns=[];
+      if(isBank(r.from)&&(r.type==="支出"||r.type==="轉帳")){
+        const fid=r.fund||"_none";const F=S.st.F[fid];let avail=Math.round(F&&F.loc?(F.loc[r.from]||0):0);
+        if(edit){const o=S.tx.get(t.id);if(o&&o.from===r.from&&(o.fund||"_none")===fid&&(o.type==="支出"||o.type==="轉帳"))avail+=Number(o.amount)||0}
+        if(amount>avail)warns.push(`帳本裡「${label(r.from)}」屬於${esc(S.cfg.child||"孩子")}的${r.fund?"「"+esc(fundName(r.fund))+"」":""}只有 <b class="num">${money(Math.max(0,avail))}</b>，記下這筆會變成負數。<br>如果這筆是<b>你自己的錢</b>在帳戶之間搬移，<b>不用記</b>，按「取消」就好。`)}
+      // guard 2: same record already saved in the last 10 minutes (double tap / two devices)
+      if(!edit){const dup=liveTx().find(x=>x.type===r.type&&Number(x.amount)===amount&&x.date===date&&x.from===r.from&&x.to===r.to&&Date.now()-(x.createdAt||0)<10*60*1000);
+        if(dup)warns.push(`剛剛已經有一筆一模一樣的紀錄（${md(dup.date)} ${money(dup.amount)}），可能是重複記了。`)}
+      const sig=JSON.stringify(r);
+      if(warns.length&&confirmed!==sig){confirmed=sig;err.className="callout";err.innerHTML=warns.join("<br><br>")+`<br><br>確定還是要記，請再按一次「仍然記下來」。`;$("#aSave").textContent="仍然記下來";err.scrollIntoView({block:"nearest",behavior:"smooth"});return}
       $("#aSave").disabled=true;
       try{const now=Date.now();
         if(edit)await S.db.doc("tx/"+t.id).set(Object.assign(docBody(S.tx.get(t.id)),r,{updatedAt:now}));
