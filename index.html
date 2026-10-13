@@ -501,6 +501,15 @@ function renderActions(){
     <button class="act" data-action="settle"><span class="ic st">✓</span><span><b>月底結算</b><span>${owed?`我先墊了 <span class="num">${money(owed)}</span>`:"從共同錢包扣回代墊"}</span></span></button>`;
 }
 
+// Bank balance as of the last reconciliation, moved by every record made since then.
+// Only the child's money is recorded, so the user's own spending still needs a fresh 對帳 now and then.
+function estActual(a){
+  const base=Number(a.actual)||0;
+  if(a.actualRec!==undefined&&a.actualRec!==null)return base+(S.st.bal[a.id]-Number(a.actualRec));
+  let d=0;liveTx().forEach(t=>{if((t.date||"")<=(a.actualDate||""))return;const v=Number(t.amount)||0;
+    if(t.from===a.id&&t.type!=="收入")d-=v;if(t.to===a.id&&t.type!=="支出")d+=v});
+  return base+d;
+}
 function renderAccounts(){
   const {bal,F,walletMonth}=S.st;
   const byKind=k=>accounts().filter(a=>a.kind===k&&!a.archived);
@@ -508,8 +517,8 @@ function renderAccounts(){
     return rows.length?`<div class="fl">${rows.map(([fid,v])=>`<div><span><span class="dot" style="--fc:${fundColor(fid)}"></span>${esc(fundName(fid))}</span><span class="num ${v<0?"neg":""}">${money(v)}</span></div>`).join("")}</div>`:""};
   const bank=byKind("bank").map(a=>{
     const rec=bal[a.id];let recon="";
-    if(a.actual!==undefined&&a.actual!==null&&a.actual!==""){const own=Number(a.actual)-rec;
-      recon=`<div class="recon"><div><span>銀行實際餘額（${a.actualDate?md(a.actualDate):""}）</span><span class="num">${money(a.actual)}</span></div><div><span>其中你自己的錢</span><span class="num ${own<0?"neg":""}">${money(own)}</span></div></div>`}
+    if(a.actual!==undefined&&a.actual!==null&&a.actual!==""){const est=estActual(a),own=est-rec,moved=est-Number(a.actual);
+      recon=`<div class="recon"><div><span>銀行餘額${moved?"（推算）":""}</span><span class="num">${money(est)}</span></div><div><span>其中你自己的錢</span><span class="num ${own<0?"neg":""}">${money(own)}</span></div><div class="muted"><span>${a.actualDate?md(a.actualDate):""} 對帳 ${money(a.actual)}${moved?`，之後紀錄 ${moved>0?"+":"−"}${money(Math.abs(moved)).replace("-","")}`:""}</span></div></div>`}
     return `<div class="acc ${S.f.acc===a.id?"on":""}"><div class="ah"><button class="an" data-acc="${a.id}">${esc(a.name)}</button>${S.canWrite?`<button class="btn small" data-recon="${a.id}">${recon?"更新":"對帳"}</button>`:""}</div>
       <div><div class="al">屬於${esc(S.cfg.child||"孩子")}的</div><div class="ab num ${rec<0?"neg":""}">${money(rec)}</div></div>${fundLines(a.id)}${recon||(a.note?`<div class="al">${esc(a.note)}</div>`:"")}</div>`}).join("");
   const wallets=byKind("wallet").map(a=>`<div class="acc ${S.f.acc===a.id?"on":""}"><div class="ah"><button class="an" data-acc="${a.id}">${esc(a.name)}</button></div>
@@ -692,13 +701,13 @@ function openRecon(id){
   const a=accById(id);const rec=S.st.bal[id];
   const body=`<div class="callout">打開銀行 App，把「${esc(a.name)}」現在的餘額填進來。帳本會自動算出：銀行裡的錢 − 屬於${esc(S.cfg.child||"孩子")}的錢 = 你自己的錢。</div>
     <div class="kv"><div><span>帳本紀錄中屬於${esc(S.cfg.child||"孩子")}的</span><span class="num">${money(rec)}</span></div></div>
-    <div class="two"><div class="f"><label for="rAmt">銀行實際餘額</label><input id="rAmt" class="big" inputmode="numeric" value="${esc(a.actual??"")}" placeholder="0"></div><div class="f"><label for="rDate">查詢日期</label><input id="rDate" type="date" value="${todayStr()}"></div></div>
+    <div class="two"><div class="f"><label for="rAmt">銀行實際餘額</label><input id="rAmt" class="big" inputmode="numeric" value="${a.actual!==undefined&&a.actual!==null&&a.actual!==""?estActual(a):""}" placeholder="0"></div><div class="f"><label for="rDate">查詢日期</label><input id="rDate" type="date" value="${todayStr()}"></div></div>
     <p class="hint" id="rOwn"></p><div class="err" id="rErr" role="alert"></div>`;
   openSheet("對帳・"+a.name,body,`<button class="btn" id="rCancel">取消</button><button class="btn primary" id="rSave">儲存</button>`,()=>{
     const upd=()=>{const v=Number($("#rAmt").value.replace(/[,$\s]/g,""));$("#rOwn").textContent=$("#rAmt").value?`你自己的錢：${money(v-rec)}${v-rec<0?"（比帳本少，可能有紀錄漏記或記錯）":""}`:""};
     upd();$("#rAmt").oninput=upd;$("#rCancel").onclick=closeSheet;
     $("#rSave").onclick=async()=>{const raw=$("#rAmt").value.replace(/[,$\s]/g,"");const accs=clone(accounts());const x=accs.find(y=>y.id===id);
-      if(raw===""){delete x.actual;delete x.actualDate}else{if(isNaN(Number(raw)))return $("#rErr").textContent="請輸入數字。";x.actual=Math.round(Number(raw));x.actualDate=$("#rDate").value}
+      if(raw===""){delete x.actual;delete x.actualDate;delete x.actualRec}else{if(isNaN(Number(raw)))return $("#rErr").textContent="請輸入數字。";x.actual=Math.round(Number(raw));x.actualDate=$("#rDate").value;x.actualRec=Math.round(rec)}
       try{await saveCfg({accounts:accs});closeSheet();toast("已更新對帳")}catch(e){writeError(e,$("#rErr"))}};
   });
 }
