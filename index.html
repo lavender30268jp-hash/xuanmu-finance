@@ -441,27 +441,32 @@ function renderCharts(){
   const target=Number(S.cfg.monthlyTarget)||0;
   // money leaving the bank accounts from the main fund, grouped by where it went
   const wallets=accounts().filter(a=>a.kind==="wallet");
-  const series=wallets.map(a=>({k:a.id,l:"撥到"+a.name})).concat([{k:"_direct",l:"直接付款"}]);
-  const keyOf=t=>t.type==="支出"?"_direct":(kind(t.to)==="wallet"?t.to:"_direct");
-  const outs=liveTx().filter(t=>t.type!=="收入"&&poolOf(t.from)===fd.id&&(t.type==="支出"||!poolOf(t.to)));
+  // Actual spending on the child: every 支出, counted when it happens and by who paid.
+  // Top-ups and month-end settlements only move money between our own pockets, so they are not spending.
+  const advs=accounts().filter(a=>a.kind==="advance");
+  const series=wallets.map(a=>({k:a.id,l:a.name+"付"})).concat(advs.map(a=>({k:a.id,l:"我先墊"})),[{k:"_bank",l:"直接從銀行付"}]);
+  const keyOf=t=>{const k=kind(t.from);return k==="wallet"||k==="advance"?t.from:"_bank"};
+  const spends=liveTx().filter(t=>t.type==="支出"&&(kind(t.from)==="wallet"||kind(t.from)==="advance"||poolOf(t.from)===fd.id));
+  const topups=liveTx().filter(t=>t.type==="轉帳"&&poolOf(t.from)===fd.id&&kind(t.to)==="wallet");
   const now=new Date();const months=[];for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"))}
-  const M=months.map(m=>{const r={m,total:0};series.forEach(s=>r[s.k]=0);outs.filter(t=>(t.date||"").startsWith(m)).forEach(t=>{const k=keyOf(t);r[k]=(r[k]||0)+Number(t.amount);r.total+=Number(t.amount)});return r});
+  const M=months.map(m=>{const r={m,total:0};series.forEach(s=>r[s.k]=0);spends.filter(t=>(t.date||"").startsWith(m)).forEach(t=>{const k=keyOf(t);r[k]=(r[k]||0)+Number(t.amount);r.total+=Number(t.amount)});
+    const tp=topups.filter(t=>(t.date||"").startsWith(m)).reduce((s,t)=>s+Number(t.amount),0);if(tp)r.extra=`另外從${esc(fd.name)}撥到錢包 ${money(tp)}`;return r});
   // where the child's money sits now
   const {bal}=S.st;
   const holds=accounts().filter(a=>(a.kind==="bank"||a.kind==="loan")&&Math.round(bal[a.id])>0);
   const holdTotal=holds.reduce((s,a)=>s+bal[a.id],0);
   // this budget year's spending by destination
   const P=budgetPeriod(fd);const dest={};
-  outs.filter(t=>t.date>=P.start&&t.date<=P.end).forEach(t=>{const k=t.type==="支出"?(t.category||"其他"):label(t.to);dest[k]=(dest[k]||0)+Number(t.amount)});
+  spends.filter(t=>t.date>=P.start&&t.date<=P.end).forEach(t=>{const k=t.category||"其他";dest[k]=(dest[k]||0)+Number(t.amount)});
   const dl=Object.entries(dest).sort((a,b)=>b[1]-a[1]);const dmax=dl.length?dl[0][1]:1;const dsum=dl.reduce((s,[,v])=>s+v,0);
   $("#charts").innerHTML=`
-    <div class="card wide"><h3>${esc(fd.name)}每月用了多少</h3><div class="sub">最近 6 個月・虛線是每月目標 ${money(target)}</div>
+    <div class="card wide"><h3>每月實際花在${esc(S.cfg.child||"孩子")}身上多少</h3><div class="sub">最近 6 個月・按花錢的日期算，不管是錢包付、你先墊還是銀行直接付・虛線是每月目標 ${money(target)}</div>
       <div class="legend">${series.map((s,i)=>`<span><i style="background:${SER[i]}"></i>${esc(s.l)}</span>`).join("")}</div>
       <div class="chartbox" id="cMonthly"></div></div>
     <div class="card"><h3>${esc(S.cfg.child||"孩子")}的錢放在哪裡</h3><div class="sub">銀行帳戶和借出去的錢，合計 ${money(holdTotal)}</div>
       ${holds.length?`<div class="donutwrap">${donut(holds.map((a,i)=>({v:bal[a.id],c:SER[accounts().filter(x=>x.kind==="bank"||x.kind==="loan").indexOf(a)%SER.length]})),holdTotal)}
       <div class="dlist">${holds.map(a=>{const i=accounts().filter(x=>x.kind==="bank"||x.kind==="loan").indexOf(a);return `<div><i style="background:${SER[i%SER.length]}"></i><span>${esc(a.name)}</span><span class="num">${money(bal[a.id])}</span><span class="p">${Math.round(bal[a.id]/holdTotal*100)}%</span></div>`}).join("")}</div></div>`:`<p class="hint">還沒有餘額</p>`}</div>
-    <div class="card"><h3>${esc(fd.name)}今年花到哪裡</h3><div class="sub">${P.label} 年度・共 ${money(dsum)}</div>
+    <div class="card"><h3>今年實際花在哪些地方</h3><div class="sub">${P.label} 年度・按分類・共 ${money(dsum)}</div>
       ${dl.length?`<div class="hbars">${dl.map(([k,v])=>`<div class="hbar"><span>${esc(k)}</span><div><div class="t"><i style="width:${Math.max(2,v/dmax*100)}%"></i></div><div class="v">${money(v)}・${Math.round(v/dsum*100)}%</div></div></div>`).join("")}</div>`:`<p class="hint">這個年度還沒有支出</p>`}</div>`;
   drawMonthly($("#cMonthly"),M,series,target);
 }
@@ -493,7 +498,7 @@ function drawMonthly(box,M,series,target){
   box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="每月用量長條圖">${g}</svg><div class="tip" hidden></div>`;
   const tip=box.querySelector(".tip");
   const show=e=>{const t=e.target.closest("[data-mi]");if(!t){tip.hidden=true;return}const r=M[Number(t.dataset.mi)];
-    tip.innerHTML=`${roc(r.m.slice(0,4))}年${Number(r.m.slice(5))}月　合計 <b>${money(r.total)}</b>`+series.filter(s=>r[s.k]).map(s=>`<br>${esc(s.l)}　<b>${money(r[s.k])}</b>`).join("")+(target?`<br>${r.total>target?"超過目標 "+money(r.total-target):"比目標少 "+money(target-r.total)}`:"");
+    tip.innerHTML=`${roc(r.m.slice(0,4))}年${Number(r.m.slice(5))}月　合計 <b>${money(r.total)}</b>`+series.filter(s=>r[s.k]).map(s=>`<br>${esc(s.l)}　<b>${money(r[s.k])}</b>`).join("")+(target?`<br>${r.total>target?"超過目標 "+money(r.total-target):"比目標少 "+money(target-r.total)}`:"")+(r.extra?`<br><span style="opacity:.75">${r.extra}</span>`:"");
     const bx=box.getBoundingClientRect(),tb=t.getBoundingClientRect();tip.hidden=false;
     let left=tb.left-bx.left+tb.width/2;left=Math.max(tip.offsetWidth/2,Math.min(bx.width-tip.offsetWidth/2,left));tip.style.left=left+"px";tip.style.top=(y(r.total)*(bx.width/W))+"px"};
   box.onpointermove=show;box.onpointerdown=show;box.onpointerleave=()=>tip.hidden=true;
