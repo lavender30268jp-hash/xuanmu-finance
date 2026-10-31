@@ -371,18 +371,21 @@ function compute(){
   // "我先墊": a month-end settlement can only clear advances that were actually recorded.
   // Settling more than was owed (e.g. a monthly total without itemised advances) must not
   // swallow later advances, so walk the advance account in date order and clamp at zero.
+  // Settlements clear the oldest advances first, so we can also list exactly which ones are still open.
+  const advOpen={};
   accounts().filter(a=>a.kind==="advance").forEach(a=>{
-    let owed=0;
+    const open=[];
     liveTx().filter(t=>t.from===a.id||t.to===a.id).sort((x,y)=>sortKey(x)<sortKey(y)?-1:1).forEach(t=>{
       const v=Number(t.amount)||0;
-      if(t.from===a.id&&t.type!=="收入")owed+=v;
-      if(t.to===a.id&&t.type!=="支出")owed=Math.max(0,owed-v);
+      if(t.from===a.id&&t.type!=="收入")open.push({t,left:v});
+      if(t.to===a.id&&t.type!=="支出"){let r=v;while(r>0&&open.length){const o=open[0];const c=Math.min(r,o.left);o.left-=c;r-=c;if(o.left<=0)open.shift()}}
     });
-    bal[a.id]=-owed;
+    advOpen[a.id]=open;
+    bal[a.id]=-open.reduce((s,o)=>s+o.left,0);
   });
   // a pool's balance is simply what its accounts hold
   funds().forEach(f=>{F[f.id].bal=poolAccounts(f.id).reduce((s,a)=>s+bal[a.id],0)});
-  return {bal,F,walletMonth};
+  return {bal,F,walletMonth,advOpen};
 }
 
 /* ---------- render ---------- */
@@ -530,7 +533,7 @@ function renderAccounts(){
   const wallets=byKind("wallet").map(a=>`<div class="acc ${S.f.acc===a.id?"on":""}"><div class="ah"><button class="an" data-acc="${a.id}">${esc(a.name)}</button></div>
       <div><div class="al">錢包剩餘</div><div class="ab num ${bal[a.id]<0?"neg":""}">${money(bal[a.id])}</div></div><div class="al">本月已記花費 <span class="num">${money(walletMonth[a.id]||0)}</span>${a.note?"・"+esc(a.note):""}</div></div>`).join("");
   const adv=byKind("advance").map(a=>{const owed=-bal[a.id];return `<div class="acc ${S.f.acc===a.id?"on":""}"><div class="ah"><button class="an" data-acc="${a.id}">${esc(a.name)}</button></div>
-      <div><div class="al">還沒結算的代墊</div><div class="ab num">${money(Math.max(0,owed))}</div></div><div class="al">${owed>0?"月底按「月底結算」從共同錢包扣回":"目前都結清了"}</div></div>`}).join("");
+      <div><div class="al">還沒結算的代墊</div><div class="ab num">${money(Math.max(0,owed))}</div></div>${owed>0?advList(a.id):""}<div class="al">${owed>0?"月底按「月底結算」從共同錢包扣回":"目前都結清了"}</div></div>`}).join("");
   const loans=byKind("loan").map(a=>`<div class="acc ${S.f.acc===a.id?"on":""}"><div class="ah"><button class="an" data-acc="${a.id}">${esc(a.name)}</button></div>
       <div><div class="al">還沒還的</div><div class="ab num">${money(bal[a.id])}</div></div>${fundLines(a.id)}${a.note?`<div class="al">${esc(a.note)}</div>`:""}</div>`).join("");
   $("#accounts").innerHTML=
@@ -601,6 +604,12 @@ const poolHint=(id)=>{const fid=poolOf(id);return fid?`會算在「${esc(fundNam
 
 const TITLES={income:"收到錢",topup:"撥零用錢",spend:"記花費",settle:"月底結算",transfer:"帳戶之間轉帳",lend:"借出",repay:"收回借款"};
 
+// The advances still waiting to be settled, oldest first; a partly settled one shows what is left.
+function advList(id){
+  const open=(S.st.advOpen||{})[id]||[];if(!open.length)return "";
+  return `<div class="kv" style="margin:8px 0">${open.map(o=>{const full=Number(o.t.amount)||0,part=o.left<full;
+    return `<div><span>${md(o.t.date)} ${esc(o.t.note||o.t.category||"代墊")}${part?`<br><small class="muted">原本 ${money(full)}，之前的結算已抵掉 ${money(full-o.left)}</small>`:""}</span><span class="num">${money(o.left)}</span></div>`}).join("")}</div>`;
+}
 function openAction(action,tx){
   if(action==="lend"||action==="repay")action="transfer";
   const c=S.cfg;const edit=!!(tx&&tx.id);const t=Object.assign({date:todayStr(),amount:"",note:""},tx||{});
@@ -634,7 +643,7 @@ function openAction(action,tx){
     const w=t.from||(settleWallet()||{}).id;
     if(!edit&&!t.amount&&owed)t.amount=owed;
     if(!edit&&!t.note)t.note=rocMonth(todayStr())+" 代墊結算";
-    body=`<div class="callout">${owed?`你先墊的錢目前還有 <b class="num">${money(owed)}</b> 沒結算。按下結算後，這筆錢會從錢包扣掉，代墊歸零。`:`目前沒有記到代墊。如果你這個月是自己算好總額，直接輸入金額就好，會從錢包扣掉。`}</div>
+    body=`<div class="callout">${owed?`你先墊的錢目前還有 <b class="num">${money(owed)}</b> 沒結算：${advList(adv.id)}按下結算後，這筆錢會從錢包扣掉，代墊歸零。`:`目前沒有記到代墊。如果你這個月是自己算好總額，直接輸入金額就好，會從錢包扣掉。`}</div>
       <div class="f"><span class="lb">從哪個錢包扣</span>${accChips("aFrom",["wallet"],w,true)}</div>
       ${amountDate(owed?"預設是全部代墊金額":"")}${note("")}`;
   }else{
