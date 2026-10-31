@@ -309,6 +309,13 @@ const kind=id=>{const a=accById(id);return a?a.kind:null};
 const isBank=id=>{const k=kind(id);return k==="bank"||k==="loan"};
 const label=v=>{const a=accById(v);return a?a.name:(v||"外部")};
 const fundName=id=>{const f=fundById(id);return f?f.name:(id?id:"未指定")};
+// Each bank / loan account belongs to one pool (fund). Which pool a record counts toward
+// follows from the accounts it touches, so no record ever needs (or can get wrong) a fund.
+const poolOf=id=>{const a=accById(id);if(!a||(a.kind!=="bank"&&a.kind!=="loan"))return null;return fundById(a.pool)?a.pool:((funds()[0]||{}).id||null)};
+const LEGACY_SRC=["宣穆基金","爺爺基金","政府津貼","宣穆投資","親友紅包・資助","親友紅包","其他","收入",""];
+const srcName=t=>{const v=t.from||"";if(accById(v))return label(v);if(!LEGACY_SRC.includes(v)||(S.cfg.incomeSources||[]).some(x=>x.l===v&&!/基金|投資/.test(v)))return v;
+  const byAcc=(S.cfg.incomeSources||[]).find(x=>x.acc===t.to);return byAcc?byAcc.l:"收入"};
+const poolAccounts=fid=>accounts().filter(a=>(a.kind==="bank"||a.kind==="loan")&&poolOf(a.id)===fid);
 const fundColor=id=>{const i=funds().findIndex(f=>f.id===id);return i<0?"var(--f0)":`var(--f${(i%3)+1})`};
 const liveTx=()=>[...S.tx.values()].filter(t=>!t.deleted);
 const sortKey=t=>(t.date||"")+"|"+String(t.createdAt||0).padStart(15,"0");
@@ -340,8 +347,7 @@ function budgetPeriod(fund){
 
 function compute(){
   const bal={};accounts().forEach(a=>bal[a.id]=0);
-  const F={};const ensure=id=>F[id]||(F[id]={in:0,out:0,loc:{},dest:{},yIn:0,yOut:0,mOut:0,moved:{}});
-  funds().forEach(f=>ensure(f.id));
+  const F={};funds().forEach(f=>F[f.id]={in:0,out:0,movedIn:0,movedOut:0,dest:{},src:{},moved:{},yIn:0,yOut:0,mOut:0});
   const ym=todayStr().slice(0,7);
   const walletMonth={};
   for(const t of liveTx()){
@@ -351,18 +357,16 @@ function compute(){
     else{if(accById(t.from))bal[t.from]-=a;if(accById(t.to))bal[t.to]+=a}
     // wallet spending this month (spend + settle out of a wallet)
     if(kind(t.from)==="wallet"&&(t.type==="支出"||kind(t.to)==="advance")&&(t.date||"").startsWith(ym))walletMonth[t.from]=(walletMonth[t.from]||0)+a;
-    // fund flows: count money when it enters or leaves the bank accounts
-    const fid=t.fund||"_none";const bFrom=isBank(t.from),bTo=isBank(t.to);
-    const into=(t.type==="收入"&&bTo)||(t.type==="轉帳"&&!bFrom&&bTo);
-    const outOf=(t.type==="支出"&&bFrom)||(t.type==="轉帳"&&bFrom&&!bTo);
-    const between=t.type==="轉帳"&&bFrom&&bTo;
-    if(!into&&!outOf&&!between)continue;
-    const f=ensure(fid);const P=budgetPeriod(fundById(fid));const inY=t.date>=P.start&&t.date<=P.end;
-    const loc=(id,v)=>f.loc[id]=(f.loc[id]||0)+v;
-    if(into){f.in+=a;loc(t.to,a);if(inY)f.yIn+=a}
-    if(outOf){f.out+=a;loc(t.from,-a);if(inY)f.yOut+=a;if((t.date||"").startsWith(ym))f.mOut+=a;
-      const k=t.type==="支出"?"直接付款・"+(t.category||"其他"):"撥到 "+label(t.to);f.dest[k]=(f.dest[k]||0)+a}
-    if(between){loc(t.from,-a);loc(t.to,a);const k=label(t.to);f.moved[k]=(f.moved[k]||0)+a}
+    // pool flows: money counts when it enters or leaves a pool's accounts
+    const pf=t.type==="收入"?null:poolOf(t.from), pt=t.type==="支出"?null:poolOf(t.to);
+    if(pf===pt)continue; // same pool (or no pool at all): nothing changes for the funds
+    if(pt&&F[pt]){const f=F[pt],P=budgetPeriod(fundById(pt)),inY=t.date>=P.start&&t.date<=P.end;
+      if(pf){f.movedIn+=a;f.moved[pf]=(f.moved[pf]||0)+a}
+      else{f.in+=a;if(inY)f.yIn+=a;const k=t.type==="收入"?srcName(t):"從"+label(t.from)+"轉回";f.src[k]=(f.src[k]||0)+a}}
+    if(pf&&F[pf]){const f=F[pf],P=budgetPeriod(fundById(pf)),inY=t.date>=P.start&&t.date<=P.end;
+      if(pt){f.movedOut+=a;f.moved[pt]=(f.moved[pt]||0)-a}
+      else{f.out+=a;if(inY)f.yOut+=a;if((t.date||"").startsWith(ym))f.mOut+=a;
+        const k=t.type==="支出"?"直接付款・"+(t.category||"其他"):"撥到 "+label(t.to);f.dest[k]=(f.dest[k]||0)+a}}
   }
   // "我先墊": a month-end settlement can only clear advances that were actually recorded.
   // Settling more than was owed (e.g. a monthly total without itemised advances) must not
@@ -376,6 +380,8 @@ function compute(){
     });
     bal[a.id]=-owed;
   });
+  // a pool's balance is simply what its accounts hold
+  funds().forEach(f=>{F[f.id].bal=poolAccounts(f.id).reduce((s,a)=>s+bal[a.id],0)});
   return {bal,F,walletMonth};
 }
 
@@ -402,24 +408,25 @@ function renderWarnings(){
 }
 
 function renderHero(){
-  const {F}=S.st;
-  const rem=id=>F[id]?Math.round(F[id].in-F[id].out):0;
-  const ids=funds().filter(f=>f.yearly||rem(f.id)!==0).map(f=>f.id).concat(F._none&&rem("_none")!==0?["_none"]:[]);
+  const {F,bal}=S.st;
+  const rem=id=>F[id]?Math.round(F[id].bal):0;
+  const ids=funds().filter(f=>f.yearly||poolAccounts(f.id).length||rem(f.id)!==0).map(f=>f.id);
   const total=ids.reduce((s,id)=>s+rem(id),0);
   const pos=ids.filter(id=>rem(id)>0);const posSum=pos.reduce((s,id)=>s+rem(id),0)||1;
   const cards=ids.map(id=>{
-    const f=F[id]||{in:0,out:0,yIn:0,yOut:0,mOut:0};const fd=fundById(id);const P=budgetPeriod(fd);
+    const f=F[id];const fd=fundById(id);const P=budgetPeriod(fd);
+    const accs=poolAccounts(id).filter(a=>Math.round(bal[a.id])!==0);
     let sub;
-    if(fd&&fd.yearly){const pct=Math.min(100,Math.round(f.yOut/fd.yearly*100));
+    if(fd.yearly){const pct=Math.min(100,Math.round(f.yOut/fd.yearly*100));
       sub=`<div class="bar"><i style="width:${pct}%"></i></div><div class="fs">${P.label} 年度 ${money(fd.yearly)}<br>已用 <span class="num">${money(f.yOut)}</span>・本月 <span class="num">${money(f.mOut)}</span></div>`}
-    else if(fd&&fd.homeAcc&&accById(fd.homeAcc)){const inHome=Math.round((f.loc||{})[fd.homeAcc]||0),rest=rem(id)-inHome;
+    else if(fd.homeAcc&&accById(fd.homeAcc)){const inHome=Math.round(bal[fd.homeAcc]||0),rest=rem(id)-inHome;
       const pct=rem(id)>0?Math.max(0,Math.min(100,Math.round(inHome/rem(id)*100))):0;
-      sub=`<div class="bar"><i style="width:${pct}%"></i></div><div class="fs">在${esc(accById(fd.homeAcc).name)} <span class="num">${money(inHome)}</span>${rest?`<br>還在其他帳戶 <span class="num">${money(rest)}</span>，記得轉進去`:"<br>全部都存進去了"}</div>`}
-    else sub=`<div class="fs">累計收到 <span class="num">${money(f.in)}</span>・已花用 <span class="num">${money(f.out)}</span></div>`;
-    return `<button class="fund" style="--fc:${fundColor(id)}" data-fund="${id}"><span class="fn">${esc(fundName(id))}</span><span class="fb num ${rem(id)<0?"neg":""}">${money(rem(id))}</span>${sub}</button>`}).join("");
-  $("#hero").innerHTML=`<div class="total"><div class="lbl">屬於${esc(S.cfg.child||"孩子")}的錢（還在銀行帳戶裡）</div><div class="big num">${money(total)}</div>
+      sub=`<div class="bar"><i style="width:${pct}%"></i></div><div class="fs">在${esc(accById(fd.homeAcc).name)} <span class="num">${money(inHome)}</span>${rest>0?`<br>還在其他帳戶 <span class="num">${money(rest)}</span>，記得轉進去`:"<br>全部都存進去了"}</div>`}
+    else sub=`<div class="fs">${accs.map(a=>esc(a.name)).join("・")||"沒有帳戶"}</div>`;
+    return `<button class="fund" style="--fc:${fundColor(id)}" data-fund="${id}"><span class="fn">${esc(fd.name)}</span><span class="fb num ${rem(id)<0?"neg":""}">${money(rem(id))}</span>${sub}</button>`}).join("");
+  $("#hero").innerHTML=`<div class="total"><div class="lbl">屬於${esc(S.cfg.child||"孩子")}的錢</div><div class="big num">${money(total)}</div>
     <div class="split">${pos.map(id=>`<i style="width:${rem(id)/posSum*100}%;background:${fundColor(id)}"></i>`).join("")}</div>
-    <div class="foot">撥進零用錢包的錢算已用掉。點右邊的基金看錢花到哪裡、現在放在哪個帳戶。</div></div><div class="funds">${cards}</div>`;
+    <div class="foot">撥進零用錢包的錢算已用掉。點右邊的基金看錢從哪來、花到哪裡、現在放在哪個帳戶。</div></div><div class="funds">${cards}</div>`;
 }
 
 /* ---------- charts ---------- */
@@ -433,7 +440,7 @@ function renderCharts(){
   const wallets=accounts().filter(a=>a.kind==="wallet");
   const series=wallets.map(a=>({k:a.id,l:"撥到"+a.name})).concat([{k:"_direct",l:"直接付款"}]);
   const keyOf=t=>t.type==="支出"?"_direct":(kind(t.to)==="wallet"?t.to:"_direct");
-  const outs=liveTx().filter(t=>(t.fund||"")===fd.id&&isBank(t.from)&&(t.type==="支出"||(t.type==="轉帳"&&!isBank(t.to))));
+  const outs=liveTx().filter(t=>t.type!=="收入"&&poolOf(t.from)===fd.id&&(t.type==="支出"||!poolOf(t.to)));
   const now=new Date();const months=[];for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"))}
   const M=months.map(m=>{const r={m,total:0};series.forEach(s=>r[s.k]=0);outs.filter(t=>(t.date||"").startsWith(m)).forEach(t=>{const k=keyOf(t);r[k]=(r[k]||0)+Number(t.amount);r.total+=Number(t.amount)});return r});
   // where the child's money sits now
@@ -513,8 +520,7 @@ function estActual(a){
 function renderAccounts(){
   const {bal,F,walletMonth}=S.st;
   const byKind=k=>accounts().filter(a=>a.kind===k&&!a.archived);
-  const fundLines=id=>{const rows=Object.keys(F).map(fid=>[fid,Math.round(F[fid].loc[id]||0)]).filter(([,v])=>v!==0);
-    return rows.length?`<div class="fl">${rows.map(([fid,v])=>`<div><span><span class="dot" style="--fc:${fundColor(fid)}"></span>${esc(fundName(fid))}</span><span class="num ${v<0?"neg":""}">${money(v)}</span></div>`).join("")}</div>`:""};
+  const fundLines=id=>{const fid=poolOf(id);return fid?`<div class="fl"><div><span><span class="dot" style="--fc:${fundColor(fid)}"></span>算在${esc(fundName(fid))}</span></div></div>`:""};
   const bank=byKind("bank").map(a=>{
     const rec=bal[a.id];let recon="";
     if(a.actual!==undefined&&a.actual!==null&&a.actual!==""){const est=estActual(a),own=est-rec,moved=est-Number(a.actual);
@@ -534,6 +540,14 @@ function renderAccounts(){
     (adv?`<div class="accgroup"><p class="glbl">我先墊的錢・刷卡或用我自己的錢包買的</p><div class="accs">${adv}</div></div>`:"");
 }
 
+// Which pool a record touches, derived from its accounts ("宣穆基金" or "宣穆基金 → 宣穆投資").
+function poolTag(t,plain){
+  const pf=t.type==="收入"?null:poolOf(t.from),pt=t.type==="支出"?null:poolOf(t.to);
+  if(!pf&&!pt)return "";
+  const txt=pf&&pt&&pf!==pt?fundName(pf)+" → "+fundName(pt):fundName(pt||pf);
+  if(plain)return txt;
+  return `<span class="pill"><span class="dot" style="--fc:${fundColor(pt||pf)}"></span>${esc(txt)}</span>`;
+}
 function renderLedger(){
   const f=S.f;
   const months=[...new Set(liveTx().map(t=>(t.date||"").slice(0,7)).filter(Boolean))].sort().reverse();
@@ -545,9 +559,9 @@ function renderLedger(){
   const eff=(t,id)=>{const a=Number(t.amount)||0;let e=0;if(t.from===id&&t.type!=="收入")e-=a;if(t.to===id&&t.type!=="支出")e+=a;return e};
   if(f.acc){let r=0;list=list.filter(t=>t.from===f.acc||t.to===f.acc);const adv=kind(f.acc)==="advance";list.forEach(t=>{r+=eff(t,f.acc);if(adv)r=Math.min(0,r);run.set(t.id,r)})}
   list.reverse();
-  if(f.fund)list=list.filter(t=>(t.fund||"_none")===f.fund);
+  if(f.fund)list=list.filter(t=>(t.type!=="收入"&&poolOf(t.from)===f.fund)||(t.type!=="支出"&&poolOf(t.to)===f.fund));
   if(f.month)list=list.filter(t=>(t.date||"").startsWith(f.month));
-  if(f.q){const q=f.q.toLowerCase();list=list.filter(t=>[t.note,t.category,fundName(t.fund),label(t.from),label(t.to)].join(" ").toLowerCase().includes(q))}
+  if(f.q){const q=f.q.toLowerCase();list=list.filter(t=>[t.note,t.category,poolTag(t,true),label(t.from),label(t.to)].join(" ").toLowerCase().includes(q))}
   if(!list.length){$("#book").innerHTML=`<div class="empty">${S.tx.size?"沒有符合條件的紀錄":"還沒有任何紀錄"}</div>`;return}
   let h="",lastM="";
   for(const t of list){
@@ -557,8 +571,8 @@ function renderLedger(){
     let amt,ac=A.c==="st"?"tr":A.c;
     if(f.acc){const e=eff(t,f.acc);amt=(e>=0?"+":"−")+money(Math.abs(e));ac=e>=0?"in":"out"}
     else amt=(t.type==="收入"?"+":t.type==="支出"?"−":"")+money(t.amount);
-    const flow=t.type==="收入"?`${esc(label(t.from))} → ${esc(label(t.to))}`:t.type==="支出"?`${esc(label(t.from))} 付`:`${esc(label(t.from))} → ${esc(label(t.to))}`;
-    const fundTag=t.fund?`<span class="pill"><span class="dot" style="--fc:${fundColor(t.fund)}"></span>${esc(fundName(t.fund))}</span>`:"";
+    const flow=t.type==="收入"?`${esc(srcName(t))} → ${esc(label(t.to))}`:t.type==="支出"?`${esc(label(t.from))} 付`:`${esc(label(t.from))} → ${esc(label(t.to))}`;
+    const fundTag=poolTag(t);
     const confirming=S.confirmDel===t.id;
     const acts=!S.canWrite?"":confirming?`<div class="acts"><button data-act="dodel" data-id="${t.id}" class="del">確定刪除</button><button data-act="nodel">取消</button></div>`
       :`<div class="acts"><button data-act="edit" data-id="${t.id}">編輯</button><button data-act="del" data-id="${t.id}" class="del">刪除</button></div>`;
@@ -583,7 +597,7 @@ const chips=(id,opts,sel)=>`<div class="chips" id="${id}" role="group">${opts.ma
 const pick=id=>{const b=$(`#${id} .chip[aria-pressed="true"]`);return b?b.dataset.v:""};
 const setPick=(id,v)=>$$(`#${id} .chip`).forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v));
 const accChips=(id,kinds,sel,showBal)=>chips(id,accounts().filter(a=>kinds.includes(a.kind)&&(!a.archived||a.id===sel)).map(a=>({v:a.id,l:a.name,s:showBal?money(S.st.bal[a.id]):""})),sel);
-const fundChips=(id,sel)=>chips(id,funds().map(f=>({v:f.id,l:f.name})),sel);
+const poolHint=(id)=>{const fid=poolOf(id);return fid?`會算在「${esc(fundName(fid))}」`:""};
 
 const TITLES={income:"收到錢",topup:"撥零用錢",spend:"記花費",settle:"月底結算",transfer:"帳戶之間轉帳",lend:"借出",repay:"收回借款"};
 
@@ -597,22 +611,22 @@ function openAction(action,tx){
   const amountDate=(hint)=>`<div class="two"><div class="f"><label for="aAmt">金額（元）</label><input id="aAmt" class="big" inputmode="numeric" value="${esc(t.amount)}" placeholder="0" autocomplete="off">${hint?`<p class="hint">${hint}</p>`:""}</div><div class="f"><label for="aDate">日期</label><input id="aDate" type="date" value="${esc(t.date)}"></div></div>`;
   const note=(ph)=>`<div class="f"><label for="aNote">備註</label><input id="aNote" value="${esc(t.note)}" placeholder="${esc(ph)}"></div>`;
   if(action==="income"){
-    const fund=t.fund||(funds()[0]&&funds()[0].id);const fd=fundById(fund);
-    body=`<div class="f"><span class="lb">哪一筆錢</span>${fundChips("aFund",fund)}</div>
-      <div class="f"><span class="lb">存進哪裡</span>${accChips("aTo",["bank","wallet"],t.to||(fd&&fd.defaultAcc)||defBank)}</div>
-      ${amountDate()}${note("例如：9月育兒津貼、115年度宣穆基金")}`;
+    const srcs=c.incomeSources||[];const src=t.to?srcName(t):((srcs[0]||{}).l||"");
+    const opts=srcs.map(x=>({v:x.l,l:x.l})).concat(src&&!srcs.some(x=>x.l===src)?[{v:src,l:src}]:[]);
+    const sAcc=(srcs.find(x=>x.l===src)||{}).acc;
+    body=`<div class="f"><span class="lb">錢從哪裡來</span>${chips("aSrc",opts,src)}</div>
+      <div class="f"><span class="lb">存進哪裡</span>${accChips("aTo",["bank"],t.to||sAcc||defBank)}<p class="hint" id="inHint"></p></div>
+      ${amountDate()}${note("例如：10月育兒津貼、115年度撥款")}`;
   }else if(action==="topup"){
     const w=t.to||(accounts().find(a=>a.kind==="wallet")||{}).id;
     if(!t.amount){const a=accById(w);if(a&&a.topup)t.amount=a.topup}
     body=`<div class="f"><span class="lb">撥給誰</span>${accChips("aTo",["wallet"],w,true)}</div>
-      <div class="f"><span class="lb">從哪個帳戶撥</span>${accChips("aFrom",["bank"],t.from||defBank)}</div>
-      <div class="f"><span class="lb">用哪一筆錢</span>${fundChips("aFund",t.fund||c.defaultSpendFund)}</div>
+      <div class="f"><span class="lb">從哪個帳戶撥</span>${accChips("aFrom",["bank"],t.from||defBank,true)}<p class="hint" id="tpHint"></p></div>
       ${amountDate()}${note("")}`;
   }else if(action==="spend"){
     const payer=t.from||(adv?adv.id:"");
     body=`<div class="f"><span class="lb">誰付的</span>${chips("aFrom",accounts().filter(a=>(a.kind==="wallet"||a.kind==="advance")&&(!a.archived||a.id===payer)).map(a=>({v:a.id,l:a.kind==="advance"?"我先刷卡／我的錢包":a.name})).concat(banks.filter(a=>!a.archived||a.id===payer).map(a=>({v:a.id,l:a.name,s:"直接從銀行付"}))),payer)}</div>
       <p class="hint" id="spHint"></p>
-      <div class="f" id="fundWrap"><span class="lb">用哪一筆錢</span>${fundChips("aFund",t.fund||c.defaultSpendFund)}</div>
       ${amountDate()}
       <div class="f"><span class="lb">分類</span>${chips("aCat",(c.categories||["其他"]).map(x=>({v:x,l:x})),t.category||(c.categories||["其他"])[0])}</div>
       ${note("例如：尿布兩箱、腸病毒疫苗第二劑")}`;
@@ -626,17 +640,22 @@ function openAction(action,tx){
   }else{
     body=`<div class="f"><span class="lb">從</span>${accChips("aFrom",["bank","loan"],t.from||defBank,true)}</div>
       <div class="f"><span class="lb">轉到</span>${accChips("aTo",["bank","loan"],t.to||"")}</div>
-      <div class="f"><span class="lb">這是哪一筆錢</span>${fundChips("aFund",t.fund||"")}<p class="hint">只記屬於宣穆的錢。例如津貼從郵局轉進宣穆投資戶，就選「宣穆投資」；你自己的錢在帳戶間搬移，不用記。</p></div>
+      <p class="hint" id="trHint">只記屬於${esc(c.child||"孩子")}的錢。你自己的錢在帳戶之間搬移，不用記。</p>
       ${amountDate()}${note("例如：津貼轉投資戶")}`;
   }
   body+=`<div class="err" id="aErr" role="alert"></div>`;
   openSheet((edit?"編輯・":"")+TITLES[action],body,`<button class="btn" id="aCancel">取消</button><button class="btn primary" id="aSave">${edit?"儲存修改":"記下來"}</button>`,()=>{
     $("#aCancel").onclick=closeSheet;
     if(action==="topup")$("#aTo").addEventListener("pick",e=>{const a=accById(e.detail);if(a&&a.topup)$("#aAmt").value=a.topup});
-    if(action==="spend"){const upd=()=>{const p=pick("aFrom");$("#fundWrap").hidden=!isBank(p);
-      $("#spHint").textContent=kind(p)==="advance"?"先記下來，月底按「月底結算」一次從共同錢包扣回。":kind(p)==="wallet"?"錢包的錢撥進去時已經算用掉，這裡只會減少錢包剩餘。也可以月底記一筆總額。":"直接從銀行帳戶付，會算進所選基金的支出。"};
+    if(action==="spend"){const upd=()=>{const p=pick("aFrom");
+      $("#spHint").textContent=kind(p)==="advance"?"先記下來，月底按「月底結算」一次從共同錢包扣回。":kind(p)==="wallet"?"錢包的錢撥進去時已經算用掉，這裡只會減少錢包剩餘。也可以月底記一筆總額。":"直接從銀行帳戶付，"+poolHint(p).replace("會算在","會算進")+"的支出。"};
       upd();$("#aFrom").addEventListener("pick",upd)}
-    if(action==="income")$("#aFund").addEventListener("pick",e=>{const fd=fundById(e.detail);if(fd&&fd.defaultAcc)setPick("aTo",fd.defaultAcc)});
+    if(action==="income"){const upd=()=>{$("#inHint").textContent=poolHint(pick("aTo"))};upd();$("#aTo").addEventListener("pick",upd);
+      $("#aSrc").addEventListener("pick",e=>{const x=(c.incomeSources||[]).find(y=>y.l===e.detail);if(x&&x.acc&&accById(x.acc)){setPick("aTo",x.acc);upd()}})}
+    if(action==="topup"){const upd=()=>{$("#tpHint").textContent=poolHint(pick("aFrom")).replace("會算在","撥出去的錢會算成")+"的支出";};upd();$("#aFrom").addEventListener("pick",upd)}
+    if(action==="transfer"){const upd=()=>{const a=poolOf(pick("aFrom")),b=poolOf(pick("aTo"));
+      $("#trHint").textContent=a&&b&&a!==b?`這筆會把錢從「${fundName(a)}」移到「${fundName(b)}」。你自己的錢在帳戶之間搬移，不用記。`:`只記屬於${S.cfg.child||"孩子"}的錢。你自己的錢在帳戶之間搬移，不用記。`};
+      upd();$("#aFrom").addEventListener("pick",upd);$("#aTo").addEventListener("pick",upd)}
     let confirmed="";
     $$(".sheet input, .sheet .chip").forEach(el=>el.addEventListener(el.tagName==="INPUT"?"input":"click",()=>{if(confirmed){confirmed="";$("#aSave").textContent=edit?"儲存修改":"記下來";$("#aErr").className="err";$("#aErr").textContent=""}}));
     $("#aSave").onclick=async()=>{
@@ -644,18 +663,18 @@ function openAction(action,tx){
       const err=$("#aErr");err.className="err";const amount=Math.round(Number(String($("#aAmt").value).replace(/[,$\s]/g,"")));
       if(!(amount>0))return err.textContent="請輸入大於 0 的金額。";
       const date=$("#aDate").value;if(!date)return err.textContent="請選擇日期。";
-      let r={amount,date,note:$("#aNote").value.trim()};
-      if(action==="income"){r.type="收入";r.fund=pick("aFund");r.to=pick("aTo");r.from=fundName(r.fund);r.category="";if(!r.to)return err.textContent="請選擇存進哪裡。"}
-      else if(action==="topup"){r.type="轉帳";r.to=pick("aTo");r.from=pick("aFrom");r.fund=pick("aFund");r.category="";if(!r.to||!r.from)return err.textContent="請選擇錢包和帳戶。";if(!r.note)r.note=rocMonth(date)+" "+label(r.to)}
-      else if(action==="spend"){r.type="支出";r.from=pick("aFrom");r.to=t.to&&!accById(t.to)?t.to:"商家";r.category=pick("aCat");r.fund=isBank(r.from)?pick("aFund"):"";if(!r.from)return err.textContent="請選擇誰付的。";if(isBank(r.from)&&!r.fund)return err.textContent="請選擇用哪一筆錢。"}
-      else if(action==="settle"){r.type="轉帳";r.from=pick("aFrom");r.to=adv?adv.id:"";r.fund="";r.category="";if(!r.from)return err.textContent="請選擇錢包。";if(!adv)return err.textContent="請先在設定裡加一個「我先墊」帳戶。"}
-      else{r.type="轉帳";r.from=pick("aFrom");r.to=pick("aTo");r.fund=pick("aFund");r.category="";if(!r.from||!r.to)return err.textContent="請選擇兩個帳戶。";if(r.from===r.to)return err.textContent="轉出和轉入不能是同一個帳戶。"}
+      let r={amount,date,note:$("#aNote").value.trim(),fund:""};
+      if(action==="income"){r.type="收入";r.to=pick("aTo");r.from=pick("aSrc")||"收入";r.category="";if(!r.to)return err.textContent="請選擇存進哪裡。"}
+      else if(action==="topup"){r.type="轉帳";r.to=pick("aTo");r.from=pick("aFrom");r.category="";if(!r.to||!r.from)return err.textContent="請選擇錢包和帳戶。";if(!r.note)r.note=rocMonth(date)+" "+label(r.to)}
+      else if(action==="spend"){r.type="支出";r.from=pick("aFrom");r.to=t.to&&!accById(t.to)?t.to:"商家";r.category=pick("aCat");if(!r.from)return err.textContent="請選擇誰付的。"}
+      else if(action==="settle"){r.type="轉帳";r.from=pick("aFrom");r.to=adv?adv.id:"";r.category="";if(!r.from)return err.textContent="請選擇錢包。";if(!adv)return err.textContent="請先在設定裡加一個「我先墊」帳戶。"}
+      else{r.type="轉帳";r.from=pick("aFrom");r.to=pick("aTo");r.category="";if(!r.from||!r.to)return err.textContent="請選擇兩個帳戶。";if(r.from===r.to)return err.textContent="轉出和轉入不能是同一個帳戶。"}
       // guard 1: money leaving a bank account that the ledger says isn't the child's
       const warns=[];
       if(isBank(r.from)&&(r.type==="支出"||r.type==="轉帳")){
-        const fid=r.fund||"_none";const F=S.st.F[fid];let avail=Math.round(F&&F.loc?(F.loc[r.from]||0):0);
-        if(edit){const o=S.tx.get(t.id);if(o&&o.from===r.from&&(o.fund||"_none")===fid&&(o.type==="支出"||o.type==="轉帳"))avail+=Number(o.amount)||0}
-        if(amount>avail)warns.push(`帳本裡「${label(r.from)}」屬於${esc(S.cfg.child||"孩子")}的${r.fund?"「"+esc(fundName(r.fund))+"」":""}只有 <b class="num">${money(Math.max(0,avail))}</b>，記下這筆會變成負數。<br>如果這筆是<b>你自己的錢</b>在帳戶之間搬移，<b>不用記</b>，按「取消」就好。`)}
+        let avail=Math.round(S.st.bal[r.from]||0);
+        if(edit){const o=S.tx.get(t.id);if(o&&o.from===r.from&&o.type!=="收入")avail+=Number(o.amount)||0}
+        if(amount>avail)warns.push(`帳本裡「${label(r.from)}」屬於${esc(S.cfg.child||"孩子")}的錢只有 <b class="num">${money(Math.max(0,avail))}</b>，記下這筆會變成負數。<br>如果這筆是<b>你自己的錢</b>在帳戶之間搬移，<b>不用記</b>，按「取消」就好。`)}
       // guard 2: same record already saved in the last 10 minutes (double tap / two devices)
       if(!edit){const dup=liveTx().find(x=>x.type===r.type&&Number(x.amount)===amount&&x.date===date&&x.from===r.from&&x.to===r.to&&Date.now()-(x.createdAt||0)<10*60*1000);
         if(dup)warns.push(`剛剛已經有一筆一模一樣的紀錄（${md(dup.date)} ${money(dup.amount)}），可能是重複記了。`)}
@@ -665,6 +684,7 @@ function openAction(action,tx){
       try{const now=Date.now();
         if(edit)await S.db.doc("tx/"+t.id).set(Object.assign(docBody(S.tx.get(t.id)),r,{updatedAt:now}));
         else await S.db.collection("tx").doc().set(Object.assign(r,{createdAt:now,updatedAt:now}));
+        if(action==="income"){const srcs=clone(c.incomeSources||[]);const x=srcs.find(y=>y.l===r.from);if(x&&x.acc!==r.to){x.acc=r.to;saveCfg({incomeSources:srcs})}}
         closeSheet();toast(edit?"已儲存修改":`已記下${TITLES[action]} ${money(amount)}`);
       }catch(e){$("#aSave").disabled=false;writeError(e,err)}
     };
@@ -683,17 +703,21 @@ async function saveCfg(patch){await S.cfgRef.set(Object.assign(clone(S.cfg),patc
 
 /* ---------- fund detail ---------- */
 function openFund(id){
-  const f=S.st.F[id]||{in:0,out:0,loc:{},dest:{},moved:{},yIn:0,yOut:0};const fd=fundById(id);const P=budgetPeriod(fd);
-  const rows=o=>Object.entries(o).filter(([,v])=>Math.round(v)!==0).sort((a,b)=>b[1]-a[1]);
-  const dest=rows(f.dest),loc=rows(f.loc).map(([k,v])=>[label(k),v]),moved=rows(f.moved);
+  const f=S.st.F[id];const fd=fundById(id);const P=budgetPeriod(fd);const {bal}=S.st;
+  const rows=o=>Object.entries(o).filter(([,v])=>Math.round(v)!==0).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
   const kv=l=>l.length?`<div class="kv">${l.map(([k,v])=>`<div><span>${esc(k)}</span><span class="num ${v<0?"neg":""}">${money(v)}</span></div>`).join("")}</div>`:`<p class="hint">還沒有紀錄</p>`;
+  const loc=poolAccounts(id).map(a=>[a.name,bal[a.id]]).filter(([,v])=>Math.round(v)!==0);
   const body=`
-    <div class="kv"><div><span>累計收到</span><span class="num">${money(f.in)}</span></div><div><span>累計用掉</span><span class="num">${money(f.out)}</span></div><div><b>剩餘</b><b class="num ${f.in-f.out<0?"neg":""}">${money(f.in-f.out)}</b></div>
-    ${fd&&fd.yearly?`<div><span>${P.label} 年度：收到 / 用掉</span><span class="num">${money(f.yIn)} / ${money(f.yOut)}</span></div>`:""}</div>
-    <p class="subh">錢去哪裡了</p>${kv(dest)}
+    <div class="kv"><div><span>累計收到</span><span class="num">${money(f.in)}</span></div><div><span>累計用掉</span><span class="num">${money(f.out)}</span></div>
+    ${Math.round(f.movedIn-f.movedOut)?`<div><span>和其他基金之間移動（淨額）</span><span class="num">${money(f.movedIn-f.movedOut)}</span></div>`:""}
+    <div><b>剩餘</b><b class="num ${f.bal<0?"neg":""}">${money(f.bal)}</b></div>
+    ${fd.yearly?`<div><span>${P.label} 年度：收到 / 用掉</span><span class="num">${money(f.yIn)} / ${money(f.yOut)}</span></div>`:""}</div>
+    <p class="subh">錢從哪裡來</p>${kv(rows(f.src))}
+    <p class="subh">錢去哪裡了</p>${kv(rows(f.dest))}
+    ${rows(f.moved).length?`<p class="subh">和其他基金之間（淨額，正數是轉進來）</p>${kv(rows(f.moved).map(([k,v])=>[fundName(k),v]))}`:""}
     <p class="subh">剩下的錢現在放在</p>${kv(loc)}
-    ${moved.length?`<p class="subh">帳戶之間移動過</p>${kv(moved)}`:""}`;
-  openSheet(fundName(id),body,`<button class="btn" id="fdLed">看這筆錢的所有紀錄</button>`,()=>{$("#fdLed").onclick=()=>{S.f.fund=id;S.f.acc="";closeSheet();render();$("#ledger").scrollIntoView({behavior:"smooth"})}});
+    <p class="hint">算在「${esc(fd.name)}」的帳戶：${poolAccounts(id).map(a=>esc(a.name)).join("、")||"沒有"}。可以在「設定 → 帳戶」修改。</p>`;
+  openSheet(fd.name,body,`<button class="btn" id="fdLed">看這筆錢的所有紀錄</button>`,()=>{$("#fdLed").onclick=()=>{S.f.fund=id;S.f.acc="";closeSheet();render();$("#ledger").scrollIntoView({behavior:"smooth"})}});
 }
 
 /* ---------- reconcile ---------- */
@@ -717,13 +741,14 @@ function openSettings(){
   const c=S.cfg;const KINDS=[["bank","銀行帳戶"],["wallet","零用錢包"],["advance","我先墊"],["loan","借出待還"]];
   let accs=clone(accounts()),fds=clone(funds());
   const accRows=()=>accs.map((a,i)=>`<div class="setrow"><input data-ai="${i}" data-k="name" value="${esc(a.name)}" aria-label="帳戶名稱"><select data-ai="${i}" data-k="kind" aria-label="種類">${KINDS.map(([v,l])=>`<option value="${v}" ${v===a.kind?"selected":""}>${l}</option>`).join("")}</select><button class="btn ghost" data-arch="${i}">${a.archived?"恢復":"隱藏"}</button>
-    <input data-ai="${i}" data-k="note" value="${esc(a.note||"")}" placeholder="說明（選填）" aria-label="說明" style="grid-column:1/3">${a.kind==="wallet"?`<input data-ai="${i}" data-k="topup" inputmode="numeric" value="${esc(a.topup||"")}" placeholder="每次撥款" aria-label="每次撥款金額">`:"<span></span>"}</div>`).join("");
-  const fundRows=()=>fds.map((f,i)=>`<div class="setrow"><input data-fi="${i}" data-k="name" value="${esc(f.name)}" aria-label="基金名稱"><input data-fi="${i}" data-k="yearly" inputmode="numeric" value="${esc(f.yearly||"")}" placeholder="每年金額（選填）" aria-label="每年金額"><select data-fi="${i}" data-k="defaultAcc" aria-label="通常存進">${accs.filter(a=>a.kind==="bank").map(a=>`<option value="${a.id}" ${a.id===f.defaultAcc?"selected":""}>${esc(a.name)}</option>`).join("")}</select></div>`).join("");
+    <input data-ai="${i}" data-k="note" value="${esc(a.note||"")}" placeholder="說明（選填）" aria-label="說明" style="grid-column:1/3">${a.kind==="wallet"?`<input data-ai="${i}" data-k="topup" inputmode="numeric" value="${esc(a.topup||"")}" placeholder="每次撥款" aria-label="每次撥款金額">`:(a.kind==="bank"||a.kind==="loan")?`<select data-ai="${i}" data-k="pool" aria-label="算在哪個基金">${fds.map(f=>`<option value="${f.id}" ${f.id===(a.pool||(fds[0]||{}).id)?"selected":""}>算在${esc(f.name)}</option>`).join("")}</select>`:"<span></span>"}</div>`).join("");
+  const fundRows=()=>fds.map((f,i)=>`<div class="setrow"><input data-fi="${i}" data-k="name" value="${esc(f.name)}" aria-label="基金名稱"><input data-fi="${i}" data-k="yearly" inputmode="numeric" value="${esc(f.yearly||"")}" placeholder="每年預算（選填）" aria-label="每年預算"><span></span></div>`).join("");
   const body=`
     <div class="two"><div class="f"><label for="sTitle">帳本名稱</label><input id="sTitle" value="${esc(c.title||"")}"></div><div class="f"><label for="sChild">孩子名字</label><input id="sChild" value="${esc(c.child||"")}"></div></div>
-    <div class="setsec"><p class="subh">錢的來源（基金）</p><p class="hint">填了每年金額，首頁會顯示年度用量。年度從幾月開始：<select id="sStart">${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===Number((fds[0]||{}).startMonth||1)?"selected":""}>${i+1} 月</option>`).join("")}</select></p>
-      <div class="setlist" id="fundList">${fundRows()}</div><button class="btn" id="addFund" type="button">＋ 新增來源</button></div>
+    <div class="setsec"><p class="subh">基金</p><p class="hint">每個銀行帳戶都要選「算在哪個基金」（在下面的帳戶設定裡）。填了每年預算，首頁會顯示年度用量。年度從幾月開始：<select id="sStart">${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===Number((fds[0]||{}).startMonth||1)?"selected":""}>${i+1} 月</option>`).join("")}</select></p>
+      <div class="setlist" id="fundList">${fundRows()}</div><button class="btn" id="addFund" type="button">＋ 新增基金</button></div>
     <div class="setsec"><p class="subh">帳戶</p><p class="hint">隱藏的帳戶不會出現在選單裡，舊紀錄和餘額會保留。</p><div class="setlist" id="accList">${accRows()}</div><button class="btn" id="addAcc" type="button">＋ 新增帳戶</button></div>
+    <div class="setsec"><div class="f"><label for="sSrc">收到錢的來源（用逗號分開）</label><input id="sSrc" value="${esc((c.incomeSources||[]).map(x=>x.l).join("，"))}"><p class="hint">選了來源，「存進哪裡」會自動帶入上次用的帳戶。</p></div></div>
     <div class="setsec"><div class="f"><label for="sTarget">每月目標（圖表上的虛線）</label><input id="sTarget" inputmode="numeric" value="${esc(c.monthlyTarget||"")}" placeholder="例如 30000"></div></div>
     <div class="setsec"><div class="f"><label for="sCats">花費分類（用逗號分開）</label><input id="sCats" value="${esc((c.categories||[]).join("，"))}"></div></div>
     <div class="err" id="sErr" role="alert"></div>`;
@@ -731,8 +756,8 @@ function openSettings(){
     const sync=()=>{$$("[data-ai]").forEach(el=>accs[el.dataset.ai][el.dataset.k]=el.value);$$("[data-fi]").forEach(el=>fds[el.dataset.fi][el.dataset.k]=el.value)};
     const bind=()=>{$$("[data-arch]").forEach(b=>b.onclick=()=>{sync();accs[b.dataset.arch].archived=!accs[b.dataset.arch].archived;$("#accList").innerHTML=accRows();bind()});
       $$('[data-k="kind"]').forEach(s=>s.onchange=()=>{sync();$("#accList").innerHTML=accRows();bind()})};bind();
-    $("#addAcc").onclick=()=>{sync();accs.push({id:"acc-"+Date.now().toString(36),name:"新帳戶",kind:"bank",note:""});$("#accList").innerHTML=accRows();bind()};
-    $("#addFund").onclick=()=>{sync();fds.push({id:"f-"+Date.now().toString(36),name:"新來源"});$("#fundList").innerHTML=fundRows()};
+    $("#addAcc").onclick=()=>{sync();accs.push({id:"acc-"+Date.now().toString(36),name:"新帳戶",kind:"bank",note:"",pool:(fds[0]||{}).id});$("#accList").innerHTML=accRows();bind()};
+    $("#addFund").onclick=()=>{sync();fds.push({id:"f-"+Date.now().toString(36),name:"新基金"});$("#fundList").innerHTML=fundRows();$("#accList").innerHTML=accRows();bind()};
     $("#sCancel").onclick=closeSheet;
     $("#sSave").onclick=async()=>{sync();
       if(accs.some(a=>!String(a.name).trim())||fds.some(f=>!String(f.name).trim()))return $("#sErr").textContent="名稱不能空白。";
@@ -740,7 +765,7 @@ function openSettings(){
       accs.forEach(a=>{a.name=a.name.trim();if(a.topup!==undefined)a.topup=Number(a.topup)||0});
       fds.forEach(f=>{f.name=f.name.trim();f.yearly=Number(f.yearly)||0;f.startMonth=sm});
       $("#sSave").disabled=true;
-      try{await saveCfg({title:$("#sTitle").value.trim(),child:$("#sChild").value.trim(),accounts:accs,funds:fds,monthlyTarget:Number($("#sTarget").value)||0,categories:$("#sCats").value.split(/[,，、]/).map(s=>s.trim()).filter(Boolean)});closeSheet();toast("設定已儲存")}
+      try{await saveCfg({title:$("#sTitle").value.trim(),child:$("#sChild").value.trim(),accounts:accs,funds:fds,monthlyTarget:Number($("#sTarget").value)||0,incomeSources:$("#sSrc").value.split(/[,，、]/).map(x=>x.trim()).filter(Boolean).map(l=>(c.incomeSources||[]).find(x=>x.l===l)||{l}),categories:$("#sCats").value.split(/[,，、]/).map(s=>s.trim()).filter(Boolean)});closeSheet();toast("設定已儲存")}
       catch(e){$("#sSave").disabled=false;writeError(e,$("#sErr"))}};
   });
 }
@@ -765,8 +790,8 @@ function openBackup(){
     ${S.canWrite?`<div class="setsec"><p class="subh">匯入備份檔</p><div class="importbox"><p class="hint">選擇「完整備份 (JSON)」檔案。第一次使用時，帳戶和基金設定也會一起匯入；已經存在的紀錄不會重複匯入。</p><input type="file" id="bFile" accept=".json,application/json"><div id="bPrev"></div></div></div>`:""}`;
   openSheet("備份與匯入",body,"",()=>{
     $("#bCsv").onclick=()=>{const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
-      const rows=liveTx().sort((a,b)=>sortKey(a)<sortKey(b)?-1:1).map(t=>[t.date,ACT[actionOf(t)].l,t.amount,label(t.from),t.type==="支出"?"":label(t.to),t.fund?fundName(t.fund):"",t.category,t.note].map(q).join(","));
-      save(`${S.cfg.title||"金庫"}_${todayStr()}.csv`,"﻿"+[["日期","類型","金額","從","到","哪一筆錢","分類","備註"].map(q).join(",")].concat(rows).join("\r\n"))};
+      const rows=liveTx().sort((a,b)=>sortKey(a)<sortKey(b)?-1:1).map(t=>[t.date,ACT[actionOf(t)].l,t.amount,label(t.from),t.type==="支出"?"":label(t.to),poolTag(t,true),t.category,t.note].map(q).join(","));
+      save(`${S.cfg.title||"金庫"}_${todayStr()}.csv`,"﻿"+[["日期","類型","金額","從","到","基金","分類","備註"].map(q).join(",")].concat(rows).join("\r\n"))};
     $("#bJson").onclick=()=>save(`${S.cfg.title||"金庫"}_備份_${todayStr()}.json`,JSON.stringify({format:"xiaomeng-v2",exportedAt:new Date().toISOString(),config:S.cfg,transactions:[...S.tx.entries()].map(([id,t])=>Object.assign({id},t))},null,2));
     const fi=$("#bFile");if(fi)fi.onchange=()=>{const file=fi.files[0];if(!file)return;const rd=new FileReader();
       rd.onload=()=>{let j;try{j=JSON.parse(rd.result)}catch(e){$("#bPrev").innerHTML=`<p class="err">這個檔案不是正確的 JSON 備份檔。</p>`;return}
@@ -843,6 +868,14 @@ onAuthStateChanged(auth,user=>{
     S.loadedCfg=true;render();
     if(snap.exists&&!S.cfg.v3&&S.canWrite){const c=clone(S.cfg);c.v3=true;if(!c.monthlyTarget)c.monthlyTarget=30000;
       (c.funds||[]).forEach(f=>{if(f.id==="f-gov"&&f.name==="政府津貼"){f.name="宣穆投資";f.homeAcc="acc-sinopac-xuanmu"}if(f.id==="f-gift"&&/紅包/.test(f.name))f.name="其他"});
+      S.cfgRef.set(c);return}
+    // v4: funds follow accounts (no per-record fund), income sources replace the fund picker
+    if(snap.exists&&S.cfg.v3&&!S.cfg.v4&&S.canWrite){const c=clone(S.cfg);c.v4=true;
+      const main=(c.funds.find(f=>f.yearly)||c.funds[0]||{}).id,inv=(c.funds.find(f=>f.homeAcc)||{}).id||main;
+      (c.accounts||[]).forEach(a=>{if((a.kind==="bank"||a.kind==="loan")&&!a.pool)a.pool=(a.id==="acc-sinopac-xuanmu"||a.id==="acc-post-phys")?inv:main});
+      if(!c.incomeSources)c.incomeSources=[{l:"爺爺撥款",acc:"acc-sinopac"},{l:"政府津貼",acc:"acc-post-phys"},{l:"親友紅包",acc:"acc-cash"},{l:"其他",acc:"acc-sinopac"}];
+      // a fund that no account belongs to and that has no budget is left over from the old model
+      c.funds=c.funds.filter(f=>f.yearly||f.homeAcc||c.accounts.some(a=>a.pool===f.id));
       S.cfgRef.set(c)}
   },fail));
   unsubs.push(db.collection("tx").limit(1000).onSnapshot(snap=>{S.tx=new Map(snap.docs.map(d=>[d.id,Object.assign({},d.data(),{id:d.id})]));S.loadedTx=true;render()},fail));
